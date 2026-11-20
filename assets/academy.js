@@ -1,5 +1,5 @@
 import {preferenceText,mood,resting,energyLimit,changeMood,lessonFeeling,sessionEnergy,learningGain,rounded} from './wellbeing.js'
-import {catalog,attributes,defaultPrices,previousDefaultPrices} from './catalog.js'
+import {catalog,attributes,defaultPrices,previousDefaultPrices,priceText} from './catalog.js'
 export {defaultPrices} from './catalog.js'
 import {mountMarket,choiceGroup} from './market.js'
 import {talents} from './talents.js'
@@ -108,18 +108,22 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const label=document.createElement('label'), input=document.createElement('input')
     input.type='number';input.min='1';input.max=String(MAX_PRICE);input.step='1'
     input.id='shop-price-'+i
-    label.append(name,input)
+    const preview=document.createElement('small')
+    input.setAttribute('aria-describedby',input.id+'-units')
+    preview.id=input.id+'-units'
+    input.oninput=()=>{preview.textContent=validPrice(input.valueAsNumber)?priceText(input.valueAsNumber)+' 游戏 Token':'请输入有效的整数价格'}
+    label.append(name,input,preview)
     const group=priceGroups[catalog[i].tier||0]
     if(catalog[i].kind==='rice')group.prepend(label)
     else group.append(label)
     return input
   })
   function fillPrices() {
-    prices.forEach((input,i)=>{input.value=getState().prices[i]})
+    prices.forEach((input,i)=>{input.value=getState().prices[i];input.oninput()})
     el('hourglass-days').value=getState().hourglassDays
     el('price-status').textContent=''
   }
-  el('price-default').onclick=()=>{prices.forEach((input,i)=>{input.value=defaultPrices[i]});el('hourglass-days').value=1;el('price-status').textContent='默认价格已填入，点保存后生效。'}
+  el('price-default').onclick=()=>{prices.forEach((input,i)=>{input.value=defaultPrices[i];input.oninput()});el('hourglass-days').value=1;el('price-status').textContent='默认价格已填入，点保存后生效。'}
   el('price-save').onclick=()=>{
     const values=prices.map(input=>input.valueAsNumber)
     const days=el('hourglass-days').valueAsNumber
@@ -149,7 +153,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
       if (!Number.isSafeInteger(cents) || cents<=0) { note.textContent='暂无可兑换金额。';return }
       const tokens=grantForCents(cents)
       const estimate=estimatedDays ? '\n其中 '+estimatedDays+' 天为旧版美元账单，按本地汇率 '+exchangeRate+' 估算，非历史实际汇率。' : ''
-      note.textContent='本机账单约 ¥'+(cents/100).toFixed(2)+'，可领取 '+tokens.toLocaleString('zh-CN')+' 游戏 Token。'+(estimatedDays?'含旧账单换算估算。':'')
+      note.textContent='本机账单约 ¥'+(cents/100).toFixed(2)+'，可领取 '+priceText(tokens)+' 游戏 Token。'+(estimatedDays?'含旧账单换算估算。':'')
       if (!confirm(note.textContent+estimate+'\n账单仅在本机读取，汇总与领取记录仅保存在当前浏览器，不上传。每份档案可领取一次，确认领取？')) return
       const apply = () => {
         readSharedChanges()
@@ -291,7 +295,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     claim.disabled = claiming || Boolean(state.historyGrant)
     el('history-offer').hidden=Boolean(state.historyGrant)
     if (!state.historyGrant && !note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。仅读本机账单，领取记录保存在当前浏览器，不上传。'
-    el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString('zh-CN') + ' 游戏 Token 可用'
+    el('academy-wallet').textContent = priceText(Math.floor(state.tokenPool)) + ' 游戏 Token 可用'
     el('academy-status').textContent = !w ? '共用库存' : w.diploma ? '毕业成绩 · '+w.diploma.rank+' 级' : ['幼鲸 · 成长中','Q 版小人 · 启蒙','少女 · 研习','少女 · 研习','成女 · 往届补修'][w.stage]
     el('academy-stats').textContent = !w ? '选择一位住民即可查看她能使用的物品。' : subjects.map((name,i) => name+' '+stats[i]+'/100').join('　')
     if (w && !w.form) el('academy-stats').textContent += '　成长日龄 '+ageDays(w)+' 天'

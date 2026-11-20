@@ -1,4 +1,5 @@
 import {artworkUrl} from './artwork.js'
+import {priceText} from './catalog.js'
 import {exportCode,importCode} from './archive.js'
 import {origin,completeNursery,idleGrowth,waitingForRice,mealProgress} from './idle.js'
 import {extraDays} from './drop-home.js'
@@ -843,7 +844,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     incoming=candidate
     $('reset-error').textContent=''
     $('reset-title').textContent=candidate?'替换当前家庭档案？':'从零开始？'
-    $('reset-warning').textContent=candidate?candidate.name+' · '+candidate.whales.length+' 位住民 · '+candidate.tokenPool.toLocaleString('zh-CN')+' 游戏 Token':resetWarning
+    $('reset-warning').textContent=candidate?candidate.name+' · '+candidate.whales.length+' 位住民 · '+priceText(candidate.tokenPool)+' 游戏 Token':resetWarning
     $('archive-impact').textContent=candidate?'确认后，将用这份存档覆盖当前进度和游戏设置。可以先取消，导出当前存档备份。':resetImpact
     resetConfirm.textContent=candidate?'确认替换存档':'确认清空并重新开始'
     resetSheet.showModal();resetCancel.focus()
@@ -1352,7 +1353,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var stock = availableRice()
     $('scatter-btn').disabled = !stock || !state.whales.some(w=>w.stage===0)
     var poolN = root.getElementById('pool-n')
-    if (poolN) poolN.textContent = Math.floor(pool).toLocaleString('zh-CN') + ' 游戏 Token 可用'
+    if (poolN) poolN.textContent = priceText(Math.floor(pool)) + ' 游戏 Token 可用'
     var riceN = root.getElementById('rice-n')
     if (riceN) riceN.textContent = String(stock)
     var count = root.getElementById('whale-count')
@@ -1364,7 +1365,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     const fits=state.riceStock+quantity<=9999
     $('buy-rice').disabled=!valid || !fits || pool<total
     var hint = root.getElementById('feed-hint')
-    if (hint) hint.textContent = '每份白饭 '+price.toLocaleString()+' 游戏 Token'+(!valid?' · 数量须为 1–9999 的整数':!fits?(state.riceStock>=9999?' · 库存已满':' · 库存最多还能放 '+(9999-state.riceStock)+' 份'):' · 合计 '+total.toLocaleString()+' 游戏 Token'+(pool<total?' · 还差 '+(total-pool).toLocaleString()+' 游戏 Token':''))
+    if (hint) hint.textContent = '每份白饭 '+priceText(price)+' 游戏 Token'+(!valid?' · 数量须为 1–9999 的整数':!fits?(state.riceStock>=9999?' · 库存已满':' · 库存最多还能放 '+(9999-state.riceStock)+' 份'):' · 合计 '+priceText(total)+' 游戏 Token'+(pool<total?' · 还差 '+priceText(total-pool)+' 游戏 Token':''))
 
   }
 

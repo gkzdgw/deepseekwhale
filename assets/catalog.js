@@ -41,5 +41,17 @@ const previousTiers=[10,30,50,80,120,180,260,380,550]
 export const previousDefaultPrices=catalog.map(g=>g.kind==='clock'?1000000:g.kind==='rice'?10000:
   g.kind==='energy'?[2,4,7,11,16,22,30,42,56][g.tier-1]*10000:
   previousTiers[g.tier-1]*(g.kind==='gift'?15000:10000))
-export const priceText=value=>value%10000===0?(value/10000).toLocaleString()+' 万':value.toLocaleString()
+// Base-10 four-digit units. BigInt keeps custom prices exact, without rounding
+// a value up across a unit threshold or changing the amount actually charged.
+export function priceText(value){
+  if(!Number.isSafeInteger(value) || value<0)return '—'
+  const amount=BigInt(value)
+  for(const [power,unit] of [[12,'兆'],[8,'亿'],[4,'万']]){
+    const scale=10n**BigInt(power)
+    if(amount<scale)continue
+    const fraction=(amount%scale).toString().padStart(power,'0').replace(/0+$/,'')
+    return (amount/scale).toString()+(fraction?'.'+fraction:'')+' '+unit
+  }
+  return value.toLocaleString('zh-CN')
+}
 
