@@ -76,7 +76,9 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     input.type='number';input.min='1';input.max='10000000000';input.step='1'
     input.id='shop-price-'+i
     label.append(name,input)
-    priceGroups[catalog[i].tier||0].append(label)
+    const group=priceGroups[catalog[i].tier||0]
+    if(catalog[i].kind==='rice')group.prepend(label)
+    else group.append(label)
     return input
   })
   function fillPrices() {
