@@ -1,10 +1,19 @@
 # 次元之家
+
+**[下载最新版 · 项目发布页](https://github.com/gkzdgw/deepseekwhale/releases/latest)**　·　[所有版本与更新记录](https://github.com/gkzdgw/deepseekwhale/releases)
+
+打开发布页，在 **Assets（下载文件）** 中点击带「完整安装包」的 ZIP。解压后双击 `install.cmd` 即可安装。
+
 DSH Web 的全年龄鲸鱼养成插件。在标题栏切换「工作」与「次元之家」。养成档案和旧版使用同一份浏览器本地存储。使用同一台电脑上的原浏览器和 DSH 地址，即可继续已有进度。
 
 在总览可使用原生聊天并查看家庭状态。点击管理员立绘可查看鲸鱼爱心和爱情值。投影水位随当前储量起落，每 2 格对应 1%，达到 200 格保持满水。自定义爱情值上限和孕育门槛独立生效。达到门槛后可开始孕育，默认满 24 小时迎来幼鲸。在「设置 → 孕育时长」填写小时和分钟并保存，可在 1 分钟至 365 天之间调整下一胎的时长。每胎开始时锁定出生时间。水族馆提供白饭与投喂；幼鲸长成人形后，在成长学堂下方的「水滴之家」点击住民即可查看档案。
 
 ## 安装
-在装有 DSH 的电脑上，从 [项目发布页](https://github.com/gkzdgw/deepseekwhale/releases/latest) 下载完整 ZIP。Windows 用户解压后运行 `install.cmd`，重新打开 DSH Web，在标题栏选择「次元之家」。
+
+1. 打开 [最新版项目发布页](https://github.com/gkzdgw/deepseekwhale/releases/latest)，在 **Assets** 中下载文件名为 `deepseekwhale-版本号.zip` 的完整安装包。
+2. 在装有 DSH 的 Windows 电脑上解压整个 ZIP，双击解压目录里的 `install.cmd`。
+3. 重新打开 DSH Web，在标题栏选择「次元之家」。
+
 也可以解压后在目录中运行 `dsh plugin --profile web add ./dsh-dim-womb-0.12.8.tgz`。如果下载的是仓库源码，可在仓库根目录执行 `npm pack` 生成同名 TGZ。
  
 ## 成长与学堂
