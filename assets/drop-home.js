@@ -1,3 +1,4 @@
+import {residentCue,paintBubble,mountPetting} from './interactions.js'
 import {preferenceText,mood} from './wellbeing.js'
 import {origin,visit,waitingForRice,mealProgress,nurseryMeals} from './idle.js'
 import {residentPortrait,routeName} from './growth-paths.js'
@@ -46,7 +47,12 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     label.dataset.group=barsGroup(name);label.append(name,value,meter);el('room-scores').append(label);return {value,meter}
   })
   const track=stages.map(name=>{const tag=document.createElement('span');tag.textContent=name;el('room-track').append(tag);return tag})
-  function details(w){
+  const portraitReaction=mountPetting(el('room-pet'),()=>getState().whales.find(w=>w.id===selected),controls.routine)
+  function updateBubble(node,w){
+    paintBubble(node,residentCue(w,controls.routine(w)))
+  }
+  function details(w,opening=false){
+    portraitReaction(w,opening)
     const stage=zone(w)
     el('room-name').textContent=w.name
     el('room-style').textContent=stages[stage]+' · '+(stage<2?habitats[stage]:routeName(w))+(w.diploma?' · '+w.diploma.rank+' 级':'')
@@ -117,7 +123,7 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     const residents=currentMap().residents,w=residents.find(r=>r.id===id)
     if(!w)return
     const switching=dialog.open
-    selected=id;details(w);refreshSwitcher(residents)
+    selected=id;details(w,true);refreshSwitcher(residents)
     if(!switching)dialog.showModal()
     controls.showResidentItems(switching)
     switcher.querySelector('[aria-pressed=true]')?.scrollIntoView({block:'nearest',inline:'nearest'})
@@ -140,7 +146,10 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     const group=roster.slice(page*4,page*4+4)
     const counts=refreshTabs(false,all)
     const key=JSON.stringify([place,page,counts,group.map(w=>[w.id,w.name,residentPortrait(w)])])
-    if(key===lastKey)return
+    if(key===lastKey){
+      group.forEach((w,i)=>updateBubble(floor.children[i].querySelector('.resident-bubble'),w))
+      return
+    }
     lastKey=key
     floor.style.backgroundImage="url('/__dim-womb/outfits/"+backgrounds[place]+"')"
     el('room-page').textContent=(page+1)+' / '+pages
@@ -150,7 +159,9 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
       const b=document.createElement('button'),img=document.createElement('img'),name=document.createElement('span')
       b.type='button';b.className='room-person';b.dataset.zone=place
       b.style.left=(Math.round((i+.5)*100/group.length)-9)+'%';b.style.setProperty('--delay',(-2*i)+'s')
-      img.src=residentPortrait(w);img.alt='';name.textContent=w.name;b.append(img,name)
+      img.src=residentPortrait(w);img.alt='';name.textContent=w.name
+      const bubble=document.createElement('i');bubble.className='resident-bubble'
+      updateBubble(bubble,w);b.append(img,name,bubble)
       b.onclick=()=>open(w.id);return b
     }))
   }
@@ -158,5 +169,5 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     const index=el('view-aquarium').classList.contains('hidden')?place:0
     return {name:habitats[index],residents:getState().whales.filter(w=>location(w)===index)}
   }
-  return {render,travel,open,refreshDetails,currentMap,refreshTankTabs:()=>refreshTabs(true,getState().whales),selectedId:()=>selected}
+  return {render,travel,open,refreshDetails,currentMap,updateBubble,refreshTankTabs:()=>refreshTabs(true,getState().whales),selectedId:()=>selected}
 }

@@ -253,6 +253,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     }
     w.study=stats;w.talents=specialties
     const feeling=lessonFeeling(w,item);if(feeling)changeMood(w,feeling)
+    w.lessonReaction={feeling,at:Date.now()}
     w.routine={day:today.day,used:today.used+1,energy:today.energy-energy}
     let change=''
     if(schedule(w).closed){

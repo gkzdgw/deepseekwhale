@@ -1132,6 +1132,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
       height = Math.round([39, 76, 114, 146][stage] + progress * [15, 22, 31, 18][stage])
       width = Math.round(height * [1.35, 0.80, 0.82, 0.82][stage])
     }
+    academy.home.updateBubble(sprite.el.querySelector('.resident-bubble'),whale)
     sprite.el.dataset.stage = String(whale.stage)
     var label = whale.name + ' · ' + growthLabel(whale, now)
     if (sprite.width === width && sprite.file === file && sprite.label === label) return
@@ -1194,6 +1195,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
       el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();academy.home.open(el.dataset.whaleId)}}
       el.dataset.whaleId = whale.id
       el.appendChild(document.createElement('img'))
+      var bubble=document.createElement('i');bubble.className='resident-bubble';el.appendChild(bubble)
       var tag = document.createElement('div')
       tag.className = 'tag'
       el.appendChild(tag)

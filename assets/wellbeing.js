@@ -22,7 +22,11 @@ export function preferenceText(w){
 export const preferredPair=w=>priorities[birthRoute(w)].slice(0,2)
 export const mood=w=>Math.min(100,(w.moodValue??80)+5*Math.max(0,Math.floor((Date.now()-(w.moodAt||w.bornAt||Date.now()))/DAY)))
 export const resting=w=>mood(w)<=20
-export const energyLimit=w=>resting(w)?3:mood(w)<=45?5:6
+export function energyLimit(w){
+  const max=w.stage===4?10:w.stage>=2?8:6
+  const feeling=mood(w)
+  return feeling<=20?max/2:feeling<=45?max-1:max
+}
 export function changeMood(w,delta){w.moodValue=Math.max(0,Math.min(100,mood(w)+delta));w.moodAt=Date.now()}
 export function lessonFeeling(w,item){
   const score=item.effects.reduce((sum,[a,points])=>sum+affinity(w,a)*points,0)/item.effects.reduce((n,[,v])=>n+v,0)
