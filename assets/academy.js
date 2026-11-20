@@ -53,7 +53,10 @@ function schedule(w) {
   const day=localDay(),max=energyLimit(w)
   const r=w.routine?.day===day?w.routine:{day,energy:max,used:0}
   const energy=Math.min(r.energy,max)
-  return {...r,energy,max,closed:r.used>=dailyUses || energy<2}
+  // In 0.12.8 a spent hourglass saved a full, unused routine without a date marker.
+  const legacyRest=!w.lastHourglassDay && w.bonusDays>0 && w.routine?.day===day && r.used===0 && energy===max
+  const moodRest=resting(w) && w.lastHourglassDay!==day && !legacyRest
+  return {...r,energy,max,moodRest,closed:r.used>=dailyUses || energy<2}
 }
 function scores(whale) {
   return subjects.map((_,i) => Math.min(100, Math.max(0, Number(whale.study?.[i]) || 0)))
@@ -71,9 +74,9 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
   controls.play=id=>{
     readSharedChanges()
     const w=getState().whales.find(w=>w.id===id)
-    if(!w||w.stage!==0||!w.meals||resting(w))return
+    if(!w||w.stage!==0||!w.meals)return
     const today=schedule(w)
-    if(today.closed)return
+    if(today.closed || today.moodRest)return
     w.routine={day:today.day,used:today.used+1,energy:today.energy-2}
     if(schedule(w).closed){w.practiceDays=(w.practiceDays||0)+1;updateStage(w,Date.now(),true)}
     save();render()
@@ -158,6 +161,18 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     })
     return {name,residents,reason:canUse?'':residents.length?'住民已成年且体力已满':'当前地图暂无住民'}
   }
+  function showTimePassage(map,days){
+    root.querySelector('.time-passage')?.remove()
+    const notice=document.createElement('div'),icon=document.createElement('img'),caption=document.createElement('span')
+    notice.className='time-passage'
+    notice.setAttribute('aria-hidden','true')
+    icon.src='/__dim-womb/outfits/hourglass.png';icon.alt=''
+    caption.textContent=map+' · '+(days?'时光流转 +'+days+' 天':'体力已恢复')
+    notice.append(icon,caption)
+    const surface=root.querySelector('dialog[open]') || el('view-academy')
+    surface.append(notice)
+    setTimeout(()=>notice.remove(),1700)
+  }
   function useClock(i,map){
     const state=getState(),scope=clockScope()
     if(map!==scope.name)return '地图已切换，请在当前地图重新使用。'
@@ -170,9 +185,11 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
         resident.bonusDays=(Number(resident.bonusDays)||0)+state.hourglassDays
         updateStage(resident,now,true,false)
       }
-      resident.routine={day:localDay(now),energy:energyLimit(resident),used:0}
+      resident.lastHourglassDay=localDay(now)
+      resident.routine={day:resident.lastHourglassDay,energy:energyLimit(resident),used:0}
     }
     save()
+    showTimePassage(scope.name,growing?state.hourglassDays:0)
     return scope.name+'的 '+scope.residents.length+' 位住民已恢复体力和行动次数。'+(growing?'成长中的住民已推进 '+state.hourglassDays+' 天。':'')
   }
   function unavailable(i,w){
@@ -189,8 +206,8 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     if(item.kind==='gift')return w.lastGiftDay===today.day?'今天已吃心情料理':mood(w)>=100?'心情已满':''
     if(item.kind==='energy')return w.lastEnergyFoodDay===today.day?'今天已吃体力料理':today.energy>=today.max?'体力已满':''
     if(w.diploma)return '已毕业'
-    if(resting(w))return '心情低落，正在休息'
-    if(today.energy<sessionEnergy(w,item))return '体力不足'
+    if(today.moodRest)return '心情低落 · 可用沙漏或心情料理'
+    if(today.energy<sessionEnergy(w,item))return '需 '+sessionEnergy(w,item)+' 点体力 · 当前 '+today.energy+' 点'
     if(item.effects.every(([a])=>a>=3 && talents(w)[a-3]>=100))return '属性已满'
     return ''
   }
@@ -267,7 +284,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     el('academy-day').textContent=w && w.stage>=1 && !w.diploma?'第 '+(ageDays(w)+1)+' 个成长日 · 体力 '+today.energy+'/'+today.max+' · 心情 '+mood(w)+'/100 · 今日还可使用 '+(today.closed?0:dailyUses-today.used)+' 份教材':''
     el('academy-likes').textContent=w && state.showPreferences?preferenceText(w):''
     if(w && today.closed)el('academy-day').textContent='今日已休息，明日 0 点恢复学习和进食。'
-    else if(w && w.stage>=1 && resting(w))el('academy-day').textContent='心情 '+mood(w)+'/100 · 正在休息。可吃心情料理，或等自然恢复。'
+    else if(w && w.stage>=1 && today.moodRest)el('academy-day').textContent='心情 '+mood(w)+'/100 · 正在休息。可吃心情料理，或等自然恢复。'
 
     el('store-wallet').textContent=el('academy-wallet').textContent
     market.refresh()

@@ -1,4 +1,4 @@
-import {preferenceText,mood,resting} from './wellbeing.js'
+import {preferenceText,mood} from './wellbeing.js'
 import {origin,visit,waitingForRice,mealProgress,nurseryMeals} from './idle.js'
 import {residentPortrait,routeName} from './growth-paths.js'
 import {talents,talentNames} from './talents.js'
@@ -51,8 +51,8 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     el('room-name').textContent=w.name
     el('room-style').textContent=stages[stage]+' · '+(stage<2?habitats[stage]:routeName(w))+(w.diploma?' · '+w.diploma.rank+' 级':'')
     el('room-interests').textContent=getState().showPreferences?preferenceText(w):''
-    el('room-mood').value=mood(w);el('room-mood-value').textContent=mood(w)+'/100'+(resting(w)?' · 正在休息':'')
     const stamina=controls.routine(w)
+    el('room-mood').value=mood(w);el('room-mood-value').textContent=mood(w)+'/100'+(stamina.moodRest?' · 正在休息':'')
     el('room-energy').max=stamina.max;el('room-energy').value=stamina.energy
     el('room-energy-value').textContent=stamina.energy+'/'+stamina.max+(stamina.closed?' · 明日 0 点恢复':'')
 
@@ -72,7 +72,7 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     const info=visit(w)
     el('room-visit').textContent=w.stage===4?'于 '+date(info.left)+' 搬到海港商街 · '+(info.visiting?'今天在家，'+date(info.until)+' 返回商街':'下次回家 '+date(info.next)):((getState().idleMode?'放置养成开启':'手动培养')+' · 已完成 '+(w.idleLessons||0)+' 次自主学习')
     el('room-play').hidden=w.stage!==0
-    el('room-play').disabled=!w.meals||resting(w)||stamina.closed
+    el('room-play').disabled=!w.meals||stamina.moodRest||stamina.closed
     el('room-play').textContent=stamina.closed?'今日已休息':'嬉水 · 消耗 2 点体力'
     const records=Object.entries(w.milestones||{}).filter(([i])=>Number(i)!==3).map(([i,ts])=>date(ts)+' '+stages[zone({stage:Number(i)})])
     el('room-record').textContent=records.join(' / ')
