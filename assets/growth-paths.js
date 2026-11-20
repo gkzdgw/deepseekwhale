@@ -1,3 +1,4 @@
+import {artworkUrl} from './artwork.js'
 import {talents,signatureTalent} from './talents.js'
 // Targets are relative study, art and fitness shares, followed by a feeding target.
 export const paths = [
@@ -45,7 +46,7 @@ export function routeIndex(w) {
 }
 export function residentPortrait(w) {
   const file=w.stage===0?'whale-calf.png':w.stage===1?'chibi-cutout.png':'resident-'+Number(w.stage===4)+'-'+routeIndex(w)+'.png'
-  return '/__dim-womb/outfits/'+file
+  return artworkUrl(file)
 }
 export function routeName(w) {return paths[routeIndex(w)][Number(w.stage===4)]}
 

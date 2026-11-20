@@ -1,3 +1,4 @@
+import {artworkUrl} from './artwork.js'
 import {residentCue,paintBubble,mountPetting} from './interactions.js'
 import {preferenceText,mood} from './wellbeing.js'
 import {origin,visit,waitingForRice,mealProgress,nurseryMeals} from './idle.js'
@@ -23,11 +24,23 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     if(!to){controls.aquarium();return}
     place=to;page=0;onTravel()
   }
+  // Only prepare artwork the player points to. Keep a small, per-dashboard decoded cache.
+  const prepared=new Map()
+  function warm(url){
+    if(prepared.has(url))return
+    if(prepared.size>=3)prepared.delete(prepared.keys().next().value)
+    const image=new Image()
+    image.decoding='async';image.fetchPriority='low';image.src=url
+    prepared.set(url,image)
+    image.decode().catch(()=>{if(prepared.get(url)===image)prepared.delete(url)})
+  }
   const location=w=>w.stage===4&&visit(w).visiting?4:zone(w)
   const maps=['tank-tabs','room-tabs'].map((id,index)=>habitats.map((name,i)=>{
     const button=document.createElement('button');button.type='button';button.textContent=name
     if(!index && i)button.dataset.travel=String(i)
     else button.onclick=()=>travel(i)
+    const prepare=()=>warm(artworkUrl(backgrounds[i]))
+    button.onpointerenter=prepare;button.onfocus=prepare
     el(id).append(button);return button
   }))
   function refreshTabs(tank,all){
@@ -96,6 +109,11 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
       switcher.replaceChildren(...residents.map(w=>{
         const button=document.createElement('button')
         button.type='button';button.dataset.id=w.id
+        const prepare=()=>{
+          const resident=getState().whales.find(r=>r.id===button.dataset.id)
+          if(resident)warm(residentPortrait(resident))
+        }
+        button.onpointerenter=prepare;button.onfocus=prepare
         button.append(w.name,document.createElement('small'))
         return button
       }))
@@ -144,14 +162,15 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     const pages=Math.max(1,Math.ceil(roster.length/4))
     page=Math.min(pages-1,Math.max(0,page))
     const group=roster.slice(page*4,page*4+4)
-    const counts=refreshTabs(false,all)
-    const key=JSON.stringify([place,page,counts,group.map(w=>[w.id,w.name,residentPortrait(w)])])
+    refreshTabs(false,all)
+    const portraits=group.map(residentPortrait)
+    const key=JSON.stringify([place,page,pages,group.map((w,i)=>[w.id,w.name,portraits[i]])])
     if(key===lastKey){
       group.forEach((w,i)=>updateBubble(floor.children[i].querySelector('.resident-bubble'),w))
       return
     }
     lastKey=key
-    floor.style.backgroundImage="url('/__dim-womb/outfits/"+backgrounds[place]+"')"
+    floor.style.backgroundImage="url('"+artworkUrl(backgrounds[place])+"')"
     el('room-page').textContent=(page+1)+' / '+pages
     el('room-prev').disabled=!page;el('room-next').disabled=page===pages-1
     el('room-hint').textContent=roster.length?'点击住民查看成长档案。':place===4?'今天没有回家探望的住民。成女每 7 天回家住 1 天。':habitats[place]+'暂时没有住民。进入'+stages[place]+'阶段后会自动入住。'
@@ -159,7 +178,7 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
       const b=document.createElement('button'),img=document.createElement('img'),name=document.createElement('span')
       b.type='button';b.className='room-person';b.dataset.zone=place
       b.style.left=(Math.round((i+.5)*100/group.length)-9)+'%';b.style.setProperty('--delay',(-2*i)+'s')
-      img.src=residentPortrait(w);img.alt='';name.textContent=w.name
+      img.decoding='async';img.src=portraits[i];img.alt='';name.textContent=w.name
       const bubble=document.createElement('i');bubble.className='resident-bubble'
       updateBubble(bubble,w);b.append(img,name,bubble)
       b.onclick=()=>open(w.id);return b

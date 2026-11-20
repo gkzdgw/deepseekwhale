@@ -1,3 +1,4 @@
+import {artworkUrl} from './artwork.js'
 import {exportCode,importCode} from './archive.js'
 import {origin,completeNursery,idleGrowth,waitingForRice,mealProgress} from './idle.js'
 import {extraDays} from './drop-home.js'
@@ -1473,13 +1474,13 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     }
     var image = $('mother-image')
     if (image.dataset.pose !== pose) {
-      var path = '/__dim-womb/outfits/mother-maid-v2-' + pose + '.png'
+      var path = artworkUrl('mother-maid-v2-' + pose + '.png')
       for (var portrait of [image, $('keeper-image')]) {
         portrait.dataset.pose = pose
         portrait.alt = '鲸鱼妈妈 · ' + motherPoses[pose][1]
         portrait.onerror = pose === 'calm' ? null : function () {
           this.onerror = null
-          this.src = '/__dim-womb/outfits/mother-maid-v2-calm.png'
+          this.src = artworkUrl('mother-maid-v2-calm.png')
         }
         portrait.src = path
       }
