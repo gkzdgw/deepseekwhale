@@ -884,7 +884,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
       if(!res.ok)throw Error('activity')
       const reading=await res.json()
       const now=Date.now(),meter=reading.meter
-      const base=candidate || {...structuredClone(DEFAULTS),storage:0,economyVersion:3,updatedAt:now,lastSatisfiedAt:now}
+      const base=candidate || {...structuredClone(DEFAULTS),storage:0,economyVersion:4,updatedAt:now,lastSatisfiedAt:now}
       const fresh=load(true,{...base,...configValues,archiveId:crypto.randomUUID(),seenAt:now,
         meterAwaitingBaseline:!meter,meterCursor:meter?{since:meter.today,days:{[meter.today]:meter.days[meter.today]||0}}:null,
         lastTokens:reading.source==='token-monitor'?reading.tokens24h:null})

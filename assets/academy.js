@@ -1,5 +1,5 @@
 import {preferenceText,mood,resting,energyLimit,changeMood,lessonFeeling,sessionEnergy,learningGain,rounded} from './wellbeing.js'
-import {catalog,attributes,defaultPrices} from './catalog.js'
+import {catalog,attributes,defaultPrices,previousDefaultPrices} from './catalog.js'
 export {defaultPrices} from './catalog.js'
 import {mountMarket,choiceGroup} from './market.js'
 import {talents} from './talents.js'
@@ -7,24 +7,26 @@ import {routeIndex,paths} from './growth-paths.js'
 import {mountDropHome,ageDays} from './drop-home.js'
 const subjects = ['学识','艺术','体能']
 const priceNames=catalog.map(g=>g.name)
-export const validPrice = n => Number.isSafeInteger(n) && n >= 1 && n <= 10000000000
+export const MAX_PRICE = 10000000000000
+export const validPrice = n => Number.isSafeInteger(n) && n >= 1 && n <= MAX_PRICE
 // Calibrated to one usage statement; this is a game exchange rate.
 const legacyPrices=[600,1200,600,1200,600,1200,30000,800]
 export function grantForCents(cents) {
   return Math.min(Number.MAX_SAFE_INTEGER, Number(BigInt(cents)*100000n))
 }
 export function upgradeEconomy(state) {
-  if(state.economyVersion>=3)return
+  if(state.economyVersion>=4)return
+  const version=state.economyVersion || 0
   const old=[5000000,10000000,5000000,10000000,5000000,10000000,100000000,500000,5000000,10000000]
-  state.prices=state.prices.map((p,i)=>(p===old[i] || (state.economyVersion<2 && p===legacyPrices[i]))?defaultPrices[i]:p)
+  state.prices=state.prices.map((p,i)=>(p===previousDefaultPrices[i] || (version<3 && p===old[i]) || (version<2 && p===legacyPrices[i]))?defaultPrices[i]:p)
   // Already granted balances stand, even when yesterday's exchange rate was more generous.
   const grant=state.historyGrant
-  if (Number.isSafeInteger(grant?.cents) && grant.cents>0 && Number.isSafeInteger(grant.tokens)) {
+  if (version<3 && Number.isSafeInteger(grant?.cents) && grant.cents>0 && Number.isSafeInteger(grant.tokens)) {
     const revised=grantForCents(grant.cents)
     state.tokenPool=Math.min(Number.MAX_SAFE_INTEGER,state.tokenPool+Math.max(0,revised-grant.tokens))
     grant.tokens=Math.max(grant.tokens,revised)
   }
-  state.economyVersion=3
+  state.economyVersion=4
 }
 const dailyUses=3
 function localDay(time=Date.now()){
@@ -104,7 +106,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
   }
   const prices = priceNames.map((name,i) => {
     const label=document.createElement('label'), input=document.createElement('input')
-    input.type='number';input.min='1';input.max='10000000000';input.step='1'
+    input.type='number';input.min='1';input.max=String(MAX_PRICE);input.step='1'
     input.id='shop-price-'+i
     label.append(name,input)
     const group=priceGroups[catalog[i].tier||0]
@@ -122,7 +124,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const values=prices.map(input=>input.valueAsNumber)
     const days=el('hourglass-days').valueAsNumber
     if (!Number.isInteger(days) || days<1 || days>3650) {el('price-status').textContent='沙漏天数须为 1 至 3650 的整数。';return}
-    if (!values.every(validPrice)) {el('price-status').textContent='价格须为 1 至 10000000000 的整数。';return}
+    if (!values.every(validPrice)) {el('price-status').textContent='价格须为 1 至 '+MAX_PRICE+' 的整数。';return}
     readSharedChanges()
     getState().prices=values;getState().hourglassDays=days;save()
     el('price-status').textContent='物价已保存。'
@@ -139,9 +141,16 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     claim.disabled = true
     try {
       const res = await fetch('/__dim-womb/api/billing-reward',{cache:'no-store'})
-      if (!res.ok) throw Error('missing')
-      const {cents}=await res.json()
+      if (!res.ok) {
+        note.textContent = res.status===422 ? await res.text() : res.status===404 ? '本机未找到费用统计账本，请先导入或记录费用。' : '读取本机账单失败（HTTP '+res.status+'），请确认 DSH 已连接。'
+        return
+      }
+      const {cents,estimatedDays,exchangeRate}=await res.json()
       if (!Number.isSafeInteger(cents) || cents<=0) { note.textContent='暂无可兑换金额。';return }
+      const tokens=grantForCents(cents)
+      const estimate=estimatedDays ? '\n其中 '+estimatedDays+' 天为旧版美元账单，按本地汇率 '+exchangeRate+' 估算，非历史实际汇率。' : ''
+      note.textContent='本机账单约 ¥'+(cents/100).toFixed(2)+'，可领取 '+tokens.toLocaleString('zh-CN')+' 游戏 Token。'+(estimatedDays?'含旧账单换算估算。':'')
+      if (!confirm(note.textContent+estimate+'\n账单仅在本机读取，汇总与领取记录仅保存在当前浏览器，不上传。每份档案可领取一次，确认领取？')) return
       const apply = () => {
         readSharedChanges()
         const state=getState()
@@ -281,7 +290,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const stats = w ? scores(w) : [0,0,0]
     claim.disabled = claiming || Boolean(state.historyGrant)
     el('history-offer').hidden=Boolean(state.historyGrant)
-    if (!state.historyGrant && !note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。'
+    if (!state.historyGrant && !note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。仅读本机账单，领取记录保存在当前浏览器，不上传。'
     el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString('zh-CN') + ' 游戏 Token 可用'
     el('academy-status').textContent = !w ? '共用库存' : w.diploma ? '毕业成绩 · '+w.diploma.rank+' 级' : ['幼鲸 · 成长中','Q 版小人 · 启蒙','少女 · 研习','少女 · 研习','成女 · 往届补修'][w.stage]
     el('academy-stats').textContent = !w ? '选择一位住民即可查看她能使用的物品。' : subjects.map((name,i) => name+' '+stats[i]+'/100').join('　')

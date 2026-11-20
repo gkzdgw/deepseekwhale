@@ -1,6 +1,6 @@
 import {talentNames} from './talents.js'
 export const attributes=['学识','艺术','体能',...talentNames]
-const prices=[10,30,50,80,120,180,260,380,550]
+const prices=Array.from({length:9},(_,i)=>10*9**i)
 const primary=[1,4,6,9,12,16,20,24,30]
 const secondary=[0,0,2,3,4,5,7,9,12]
 const third=[0,0,0,0,0,0,3,4,6]
@@ -25,7 +25,7 @@ function item(attribute,index){
 }
 // The first ten positions are the persistent inventory IDs used by previous releases.
 export const catalog=[item(0,0),item(0,1),item(1,0),item(1,1),item(2,0),item(2,1),
-  {name:'时光沙漏',kind:'clock',cost:1000000,effects:[]},{name:'幼鲸白饭',kind:'rice',cost:10000,effects:[]},item(3,0),item(1,2)]
+  {name:'时光沙漏',kind:'clock',cost:100000000,effects:[]},{name:'幼鲸白饭',kind:'rice',cost:10000,effects:[]},item(3,0),item(1,2)]
 const existing=new Set(catalog.map(g=>g.name))
 for(let a=0;a<names.length;a++)for(let t=0;t<9;t++)if(!existing.has(names[a][t]))catalog.push(item(a,t))
 // Keep the nine existing gift slots so stored quantities and custom prices carry over.
@@ -33,8 +33,13 @@ const sweets='蜂蜜热可可 草莓大福 焦糖布丁 桂花奶冻 蜜桃千�
 const dinners='芝麻饭团 紫菜蒸蛋 鲜虾烧卖 南瓜浓汤 菌菇焗饭 鲑鱼茶泡饭 奶油海鲜面 海港什锦锅 远航团圆宴'.split(' ')
 sweets.forEach((name,i)=>catalog.push({name,tier:i+1,kind:'gift',cost:prices[i]*15000,
   cheer:[8,16,22,28,34,40,50,60,75][i],effects:[]}))
-dinners.forEach((name,i)=>catalog.push({name,tier:i+1,kind:'energy',cost:[2,4,7,11,16,22,30,42,56][i]*10000,
+dinners.forEach((name,i)=>catalog.push({name,tier:i+1,kind:'energy',cost:20000*9**i,
   restore:[1,1.5,2,2.5,3,3.5,4,5,6][i],effects:[]}))
 export const defaultPrices=catalog.map(g=>g.cost)
+// Pre-0.12.15 defaults, indexed by the same persistent inventory IDs.
+const previousTiers=[10,30,50,80,120,180,260,380,550]
+export const previousDefaultPrices=catalog.map(g=>g.kind==='clock'?1000000:g.kind==='rice'?10000:
+  g.kind==='energy'?[2,4,7,11,16,22,30,42,56][g.tier-1]*10000:
+  previousTiers[g.tier-1]*(g.kind==='gift'?15000:10000))
 export const priceText=value=>value%10000===0?(value/10000).toLocaleString()+' 万':value.toLocaleString()
 

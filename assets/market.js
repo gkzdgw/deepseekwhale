@@ -76,6 +76,11 @@ export function choiceGroup(group,onChange){
   }
 }
 
+export function safePurchaseTotal(price,quantity){
+  const total=price*quantity
+  return Number.isSafeInteger(price) && price>0 && Number.isSafeInteger(quantity) && quantity>=1 && quantity<=9999 && Number.isSafeInteger(total) ? total : null
+}
+
 export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,clockScope,useItem,unavailable,residentId,student}){
   const el=id=>root.getElementById(id)
   const shop=el('school-store'),bag=el('school-bag'),quantity=el('store-quantity')
@@ -88,6 +93,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   }
   function buyReason(state,i,n){
     if(!Number.isSafeInteger(n)||n<1||n>9999)return '数量须为 1–9999 的整数'
+    if(safePurchaseTotal(state.prices[i],n)===null)return '总价超出精确计算范围，请减少数量'
     if(!Number.isSafeInteger(owned(state,i)+n)||(catalog[i].kind==='rice' && state.riceStock+n>9999))return '库存容量不足'
     return state.prices[i]*n>state.tokenPool?'游戏币余额不足':''
   }
