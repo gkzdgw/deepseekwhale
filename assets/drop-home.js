@@ -10,7 +10,7 @@ const habitats=['幼鲸水族馆','水下乐园','少女寝室','海港商街','
 const backgrounds=['map-lagoon.jpg','map-coral.jpg','map-dorm.jpg','map-city.jpg','drop-home.jpg']
 const zone=w=>w.stage===4?3:Math.min(2,w.stage)
 const date=ts=>new Date(ts).toLocaleDateString('zh-CN')
-export function mountDropHome(root,getState,itemNames,controls){
+export function mountDropHome(root,getState,itemNames,controls,onTravel){
   const el=id=>root.getElementById(id)
   const dialog=el('resident-sheet'),floor=el('room-floor')
   root.querySelector('.app').append(dialog)
@@ -20,7 +20,7 @@ export function mountDropHome(root,getState,itemNames,controls){
   el('room-next').onclick=()=>{page++;render()}
   function travel(to){
     if(!to){controls.aquarium();return}
-    place=to;page=0;render()
+    place=to;page=0;onTravel()
   }
   const location=w=>w.stage===4&&visit(w).visiting?4:zone(w)
   const maps=['tank-tabs','room-tabs'].map((id,index)=>habitats.map((name,i)=>{
@@ -119,5 +119,9 @@ export function mountDropHome(root,getState,itemNames,controls){
       b.onclick=()=>open(w.id);return b
     }))
   }
-  return {render,travel,open,refreshDetails,refreshTankTabs:()=>refreshTabs(true,getState().whales),selectedId:()=>selected}
+  function currentMap(){
+    const index=el('view-aquarium').classList.contains('hidden')?place:0
+    return {name:habitats[index],residents:getState().whales.filter(w=>location(w)===index)}
+  }
+  return {render,travel,open,refreshDetails,currentMap,refreshTankTabs:()=>refreshTabs(true,getState().whales),selectedId:()=>selected}
 }

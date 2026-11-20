@@ -1083,10 +1083,10 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     scene.bubblesReady = true
   }
 
-  function updateStage(whale, now, active=false) {
+  function updateStage(whale, now, active=false, persistIdle=true) {
     if(waitingForRice(whale))return ''
     if(whale.stage===0)completeNursery(whale,now,state.growth[0].days,extraDays(whale))
-    if(idleGrowth(whale,state,now,extraDays(whale)))save()
+    if(idleGrowth(whale,state,now,extraDays(whale)) && persistIdle)save()
     var event = ''
     while (whale.stage < 4) {
       var rule = state.growth[whale.stage]

@@ -35,7 +35,7 @@ function paintIcon(icon,item){
 function describe(item,state,w,routine){
   switch(item.kind){
     case 'rice':return '仅限幼鲸 · 白饭成长进度 +1 份'
-    case 'clock':return '成长日龄 +'+state.hourglassDays+' 天'
+    case 'clock':return '当前地图全体恢复体力与行动次数 · 成长期 +'+state.hourglassDays+' 天'
     case 'gift':return '第二阶段起 · 心情 +'+item.cheer+(w?.stage>=1?'（当前 '+mood(w)+' → '+Math.min(100,mood(w)+item.cheer)+'）':'')
     case 'energy':{
       const day=w?.stage>=1?routine(w):null
@@ -76,7 +76,7 @@ export function choiceGroup(group,onChange){
   }
 }
 
-export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,useItem,unavailable,residentId,student}){
+export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,clockScope,useItem,unavailable,residentId,student}){
   const el=id=>root.getElementById(id)
   const shop=el('school-store'),bag=el('school-bag'),quantity=el('store-quantity')
   root.querySelector('.app').append(shop,bag)
@@ -110,8 +110,9 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       button.type='button';button.className='btn';button.dataset.item=i
       button.onclick=()=>{
         const id=prefix==='room'?residentId():current()?.id,n=quantity.valueAsNumber
+        const map=item.kind==='clock' && prefix!=='store'?clockScope().name:null
         transact(()=>{
-          const feedback=prefix==='store'?buy(i,n):useItem(i,id)
+          const feedback=prefix==='store'?buy(i,n):useItem(i,id,map)
           el(prefix==='bag'?'academy-feedback':prefix+'-feedback').textContent=feedback
         })
       }
@@ -138,18 +139,25 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
     transact(()=>{el('meal-feedback').textContent=buy(riceItem,n)})
   }
   const clockItem=catalog.findIndex(item=>item.kind==='clock')
-  const clockQuantity=el('clock-quantity'),clockButton=el('buy-clock'),clockFeedback=el('clock-feedback')
-  function refreshClock(){
+  const clockQuantity=el('clock-quantity'),clockButton=el('buy-clock'),clockUse=el('use-clock'),clockFeedback=el('clock-feedback')
+  function refreshClock(scope){
     const s=getState(),n=clockQuantity.valueAsNumber,price=s.prices[clockItem]
     const reason=buyReason(s,clockItem,n)
     el('clock-stock').textContent='持有 '+owned(s,clockItem).toLocaleString()+' 个 · '+priceText(price)+' Token / 个'
+    clockUse.disabled=!owned(s,clockItem)||Boolean(scope.reason)
+    clockUse.textContent='对'+scope.name+'使用 1 个'
+    clockUse.title=scope.reason||('影响当前地图全部 '+scope.residents.length+' 位住民')
     clockButton.disabled=Boolean(reason)
     clockButton.textContent=reason||'购买 · '+priceText(price*n)+' Token'
   }
-  clockQuantity.oninput=()=>{clockFeedback.textContent='';refreshClock()}
+  clockQuantity.oninput=()=>{clockFeedback.textContent='';refreshClock(clockScope())}
   clockButton.onclick=()=>{
     const n=clockQuantity.valueAsNumber
     transact(()=>{clockFeedback.textContent=buy(clockItem,n)})
+  }
+  clockUse.onclick=()=>{
+    const map=clockScope().name
+    transact(()=>{clockFeedback.textContent=useItem(clockItem,null,map)})
   }
   quantity.oninput=render
   for(const kiosk of root.querySelectorAll('[data-shop]'))kiosk.onclick=e=>{
@@ -177,7 +185,8 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   const snapshots={}
   function refresh(){
     const s=getState()
-    refreshClock()
+    const scope=clockScope()
+    refreshClock(scope)
     for(const [prefix,dialog,container] of views){
       if(!dialog.open)continue
       const isBag=prefix!=='store',inline=prefix==='room'
@@ -186,7 +195,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       const filter=filters[prefix],n=quantity.valueAsNumber
       const cards=grids[prefix] ||= buildCards(container,prefix)
       const today=w?routine(w):null
-      const key=JSON.stringify([filter.category.value,filter.tier.value,n,query,onlyUsable,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
+      const key=JSON.stringify([filter.category.value,filter.tier.value,n,query,onlyUsable,scope.name,scope.reason,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
       if(snapshots[prefix]===key)continue
       snapshots[prefix]=key
       if(isBag){
@@ -209,8 +218,8 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
         effect.textContent=describe(item,s,isBag?w:null,routine)
         if(isBag){
           count.textContent='× '+stock.toLocaleString();count.setAttribute('aria-label','持有 '+stock+' 份')
-          button.hidden=!w
-          button.disabled=Boolean(reason);button.textContent=reason||'使用 1 份'
+          button.hidden=!w && item.kind!=='clock'
+          button.disabled=Boolean(reason);button.textContent=reason||(item.kind==='clock'?'对'+scope.name+'使用 1 个':'使用 1 份')
         }else{
           const reason=buyReason(s,i,n)
           count.textContent=priceText(s.prices[i])+' Token / 份'

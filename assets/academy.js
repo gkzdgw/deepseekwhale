@@ -79,7 +79,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     save();render()
   }
   controls.routine=schedule
-  const home=mountDropHome(root,getState,priceNames,controls)
+  const home=mountDropHome(root,getState,priceNames,controls,render)
   const guide=el('academy-routes')
   for(const [teen,adult,study,art,fitness,meals] of paths){
     const row=document.createElement('li')
@@ -121,7 +121,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     el('price-status').textContent='物价已保存。'
   }
   const market=mountMarket(root,{getState,readSharedChanges,save,render,current,routine:schedule,
-    availableRice:controls.rice,refreshPantry:controls.refreshPantry,useItem,unavailable,residentId:home.selectedId,student})
+    availableRice:controls.rice,refreshPantry:controls.refreshPantry,clockScope,useItem,unavailable,residentId:home.selectedId,student})
   controls.showResidentItems=market.showResidentItems
   const claim = el('history-credit'), note = el('history-note')
   let claiming = false
@@ -149,14 +149,40 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     finally {claiming=false;render()}
   }
   function current() { return getState().whales.find(w => w.id === student.value) }
+  function clockScope(){
+    const {name,residents}=home.currentMap()
+    const canUse=residents.some(w=>{
+      if(w.stage<4)return true
+      const today=schedule(w)
+      return today.energy<today.max || today.used>0
+    })
+    return {name,residents,reason:canUse?'':residents.length?'住民已成年且体力已满':'当前地图暂无住民'}
+  }
+  function useClock(i,map){
+    const state=getState(),scope=clockScope()
+    if(map!==scope.name)return '地图已切换，请在当前地图重新使用。'
+    if(scope.reason)return scope.reason
+    if(!(state.schoolBag[i]>0))return '沙漏已用完'
+    state.schoolBag[i]--
+    const now=Date.now(),growing=scope.residents.some(w=>w.stage<4)
+    for(const resident of scope.residents){
+      if(resident.stage<4){
+        resident.bonusDays=(Number(resident.bonusDays)||0)+state.hourglassDays
+        updateStage(resident,now,true,false)
+      }
+      resident.routine={day:localDay(now),energy:energyLimit(resident),used:0}
+    }
+    save()
+    return scope.name+'的 '+scope.residents.length+' 位住民已恢复体力和行动次数。'+(growing?'成长中的住民已推进 '+state.hourglassDays+' 天。':'')
+  }
   function unavailable(i,w){
-    if(!w)return '请选择使用对象'
     const item=catalog[i]
+    if(item.kind==='clock')return clockScope().reason
+    if(!w)return '请选择使用对象'
     if(item.kind==='rice'){
       if(w.stage!==0)return '仅限幼鲸'
       return controls.rice()>0?'':'白饭已投出'
     }
-    if(item.kind==='clock')return w.stage===4?'已成年':''
     if(w.stage===0)return '从 Q 版小人阶段开始'
     const today=schedule(w)
     if(today.closed)return '今日已休息 · 明日 0 点恢复'
@@ -168,9 +194,10 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     if(item.effects.every(([a])=>a>=3 && talents(w)[a-3]>=100))return '属性已满'
     return ''
   }
-  function useItem(i,id){
+  function useItem(i,id,map){
     const state=getState(),w=state.whales.find(resident=>resident.id===id)
     const item=catalog[i],name=item.name
+    if(item.kind==='clock')return useClock(i,map)
     if(w)updateStage(w,Date.now())
     const reason=unavailable(i,w)
     if(reason)return reason
@@ -191,11 +218,6 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
       w.routine={day:today.day,used:today.used,energy:today.energy}
       w.snacksEaten=(w.snacksEaten||0)+1
       save();return w.name+'吃了'+name+'，'+label+' '+before+' → '+after+'。'
-    }
-    if(item.kind==='clock'){
-      w.bonusDays=(Number(w.bonusDays)||0)+state.hourglassDays
-      const event=updateStage(w,Date.now(),true)
-      save();return w.name+'使用了时光沙漏，成长日龄 +'+state.hourglassDays+' 天。'+event
     }
     const stats=scores(w),energy=sessionEnergy(w,item)
     const specialties=talents(w).slice(), report=[]
