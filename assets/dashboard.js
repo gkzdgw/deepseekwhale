@@ -1,3 +1,4 @@
+import {exportCode,importCode} from './archive.js'
 import {origin,completeNursery,idleGrowth,waitingForRice,mealProgress} from './idle.js'
 import {extraDays} from './drop-home.js'
 import {birthRoute,ensureTrait,routeIndex,routeName,residentPortrait} from './growth-paths.js'
@@ -175,7 +176,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
   function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)) }
   function pad(n) { return n < 10 ? '0' + n : String(n) }
 
-  function load(fromSharedArchive=false) {
+  function load(fromSharedArchive=false, replacement=null) {
     var rawV2 = null
     var rawV1 = null
     try {
@@ -185,6 +186,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var parsed = {}
     var raw = rawV2 || rawV1
     if (raw) { try { parsed = JSON.parse(raw) || {} } catch (e) { parsed = {} } }
+    if(replacement){parsed=replacement;rawV2=true}
     var out = {}
     for (var k in DEFAULTS) out[k] = parsed[k] === undefined ? structuredClone(DEFAULTS[k]) : parsed[k]
     if (out.growth?.length === 3 && out.growth.some((r,i) => r?.days !== [3,14,35][i])) {
@@ -831,36 +833,78 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
   })
 
   const resetSheet=$('reset-sheet'),resetConfirm=$('reset-confirm'),resetCancel=$('reset-cancel')
-  $('cfg-reset').onclick=()=>{$('reset-error').textContent='';resetSheet.showModal();resetCancel.focus()}
+  const code=$('archive-code'),transferMessage=$('archive-message')
+  let incoming=null
+  const resetWarning=$('reset-warning').textContent
+  const resetImpact=$('archive-impact').textContent
+  function confirmArchive(candidate){
+    incoming=candidate
+    $('reset-error').textContent=''
+    $('reset-title').textContent=candidate?'替换当前家庭档案？':'从零开始？'
+    $('reset-warning').textContent=candidate?candidate.name+' · '+candidate.whales.length+' 位住民 · '+candidate.tokenPool.toLocaleString('zh-CN')+' Token':resetWarning
+    $('archive-impact').textContent=candidate?'确认后，将用这份存档覆盖当前进度和游戏设置。可以先取消，导出当前存档备份。':resetImpact
+    resetConfirm.textContent=candidate?'确认替换存档':'确认清空并重新开始'
+    resetSheet.showModal();resetCancel.focus()
+  }
+  $('cfg-reset').onclick=()=>confirmArchive(null)
+  resetSheet.addEventListener('close',()=>{incoming=null})
   resetCancel.onclick=()=>resetSheet.close()
+  function syncCodeActions(){
+    const empty=!code.value.trim()
+    $('archive-copy').disabled=empty;$('archive-import').disabled=empty
+  }
+  code.oninput=()=>{syncCodeActions();transferMessage.textContent=''}
+  $('archive-export').onclick=async()=>{
+    try{
+      readSharedChanges();code.value=await exportCode(state);syncCodeActions();code.select()
+      transferMessage.textContent='存档码已生成。复制后，在另一台电脑的设置中粘贴并预览导入。'
+    }catch{transferMessage.textContent='导出失败，请确认浏览器支持压缩存档后重试。'}
+  }
+  $('archive-copy').onclick=async()=>{
+    try{await navigator.clipboard.writeText(code.value);transferMessage.textContent='存档码已复制。'}
+    catch{code.focus();code.select();transferMessage.textContent='已选中存档码，请按 Ctrl+C 复制。'}
+  }
+  $('archive-import').onclick=async()=>{
+    const input=code.value
+    try{const candidate=await importCode(input);if(code.value===input && !resetSheet.open)confirmArchive(candidate)}
+    catch(error){transferMessage.textContent=error.message}
+  }
   resetSheet.addEventListener('cancel',e=>{if(resetConfirm.disabled)e.preventDefault()})
   resetConfirm.onclick=async()=>{
     if(resetConfirm.disabled)return
     resetConfirm.disabled=true;resetCancel.disabled=true
     const reset=async()=>{
-      const defaults={capacity:DEFAULTS.capacity,hatchAt:180,gestationMinutes:defaultGestationMinutes}
+      readSharedChanges()
+      const candidate=incoming
+      const configValues=candidate?{capacity:candidate.capacity,hatchAt:candidate.hatchAt,gestationMinutes:candidate.gestationMinutes}
+        :{capacity:DEFAULTS.capacity,hatchAt:180,gestationMinutes:defaultGestationMinutes}
       const res=await fetch('/__dim-womb/api/activity',{cache:'no-store',signal})
       if(!res.ok)throw Error('activity')
       const reading=await res.json()
-      const config=await fetch(settingsUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults),signal})
-      if(!config.ok)throw Error('settings')
       const now=Date.now(),meter=reading.meter
-      const fresh={...structuredClone(DEFAULTS),...defaults,archiveId:crypto.randomUUID(),storage:0,
-        economyVersion:3,updatedAt:now,lastSatisfiedAt:now,seenAt:now,
+      const base=candidate || {...structuredClone(DEFAULTS),storage:0,economyVersion:3,updatedAt:now,lastSatisfiedAt:now}
+      const fresh=load(true,{...base,...configValues,archiveId:crypto.randomUUID(),seenAt:now,
         meterAwaitingBaseline:!meter,meterCursor:meter?{since:meter.today,days:{[meter.today]:meter.days[meter.today]||0}}:null,
-        lastTokens:reading.source==='token-monitor'?reading.tokens24h:null}
+        lastTokens:reading.source==='token-monitor'?reading.tokens24h:null})
       const snapshot=JSON.stringify(fresh)
-      localStorage.setItem(KEY,snapshot)
-      reserve=defaults;state=load(true);savedSnapshot=snapshot;seenAt=now;lastTick=now;mood='quiet'
+      const previous={capacity:state.capacity,hatchAt:state.hatchAt,gestationMinutes:state.gestationMinutes}
+      const storeSettings=values=>fetch(settingsUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values),signal})
+      const config=await storeSettings(configValues)
+      if(!config.ok)throw Error('settings')
+      try {localStorage.setItem(KEY,snapshot)}
+      catch(error){await storeSettings(previous);throw error}
+      reserve=configValues;state=fresh;savedSnapshot=snapshot;seenAt=now;lastTick=now;mood=state.mood
       localStorage.removeItem(OLD_KEY)
+      if(candidate)advance(Math.max(0,now-state.updatedAt))
       activity=reading
-      resetSheet.close();fillForm();render()
-      $('growth-message').textContent='已重置次元之家。游戏余额为 0，之后按新增用量结算。'
+      resetSheet.close();fillForm();render();save();code.value='';syncCodeActions()
+      transferMessage.textContent=candidate?'存档已导入。之后的用量从本机当前读数开始结算。':''
+      $('growth-message').textContent=candidate?'':'已重置次元之家。游戏余额为 0，之后按新增用量结算。'
     }
     try {
       if(navigator.locks)await navigator.locks.request('dsh-whale-school-purchase',reset)
       else await reset()
-    } catch {$('reset-error').textContent='重置未完成。请确认 DSH 已连接，且浏览器允许保存本地数据，再试一次。'}
+    } catch {$('reset-error').textContent='档案未能完成保存。请检查 DSH 连接和浏览器存储空间，再试一次。'}
     finally {resetConfirm.disabled=false;resetCancel.disabled=false}
   }
 

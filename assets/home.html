@@ -824,6 +824,7 @@
 .btn.reset-button{color:#ffdfdf;background:#512d40;border:1px solid #af6f80}
 #reset-sheet{max-width:min(440px,90vw);box-sizing:border-box;padding:22px;border:1px solid #876879;border-radius:14px;color:#f1f2fb;background:#202a40}
 #reset-sheet h2{margin:0;font-size:20px}#reset-sheet p{line-height:1.65;font-size:14px}#reset-sheet::backdrop{background:#081323ab}#reset-error:empty{display:none}
+.archive-transfer{margin-top:20px;border-top:1px solid #405569;padding-top:14px}.archive-transfer h3{margin:0 0 8px;font-size:16px}.archive-transfer label{display:block;color:#bed1dc;font-size:12px}.archive-transfer textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;max-height:14em;min-height:4em;margin:5px 0 8px;padding:9px 10px;border:1px solid #536d82;border-radius:8px;background:#142437;color:#e6f1f7;font:13px/1.45 ui-monospace,monospace;overflow-wrap:anywhere}.archive-transfer button:disabled{opacity:.5}
 </style>
 </head>
 <body class="archive-mode">
@@ -1141,11 +1142,17 @@
           <div class="hint" id="growth-message" role="status"></div><p class="foot">
             储存上限和孕育门槛保存到本机 DSH 配置文件，养成进度保存在当前浏览器。
           </p>
+          <section class="archive-transfer" aria-labelledby="archive-heading">
+            <h3 id="archive-heading">跨电脑存档</h3>
+            <label for="archive-code">存档码</label><textarea id="archive-code" rows="2" spellcheck="false" autocomplete="off" placeholder="导出当前进度，或在这里粘贴其他电脑的存档码"></textarea>
+            <div class="row"><button class="btn" id="archive-export" type="button">导出存档码</button><button class="btn ghost" id="archive-copy" type="button" disabled>复制</button><button class="btn ghost" id="archive-import" type="button" disabled>预览导入</button></div>
+            <p class="hint" id="archive-message" role="status"></p>
+          </section>
           <section class="reset-area"><div><h3>重新开始</h3><p>清空这个浏览器的家庭档案，并恢复本机的游戏设置。</p></div><button class="btn reset-button" id="cfg-reset" type="button">重置次元之家</button></section>
           <dialog id="reset-sheet" role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-warning">
             <h2 id="reset-title">从零开始？</h2>
             <p id="reset-warning">游戏 Token、爱情值和亲密度将归零。所有住民、背包、成长记录、孕育进度及奖励领取记录都会清空，物价和养成设置将恢复默认。此操作无法撤销。</p>
-            <p>DSH 聊天和原始账单会保留。重新开始后，只会自动结算新增用量。</p>
+            <p id="archive-impact">DSH 聊天和原始账单会保留。重新开始后，只会自动结算新增用量。</p>
             <div class="row"><button type="button" class="btn ghost" id="reset-cancel" autofocus>取消</button><button type="button" class="btn reset-button" id="reset-confirm">确认清空并重新开始</button></div>
             <p id="reset-error" role="status"></p>
           </dialog>
