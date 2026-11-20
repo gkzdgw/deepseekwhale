@@ -2,7 +2,7 @@ import {exportCode,importCode} from './archive.js'
 import {origin,completeNursery,idleGrowth,waitingForRice,mealProgress} from './idle.js'
 import {extraDays} from './drop-home.js'
 import {birthRoute,ensureTrait,routeIndex,routeName,residentPortrait} from './growth-paths.js'
-import {mountAcademy, grade, upgradeEconomy, defaultPrices, validPrice} from './academy.js'
+import {mountAcademy, grade, upgradeEconomy, migrateDailyRoutine, defaultPrices, validPrice} from './academy.js'
 import {defaultGestationMinutes,validGestationMinutes} from './gestation.js'
 // Shared by the standalone dashboard and its DSH overview.
 const overviewRoots = new WeakSet()
@@ -252,6 +252,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
       wh.meals = Math.max(0, Math.floor(Number(wh.meals) || 0))
       wh.form = Object.prototype.hasOwnProperty.call(adultNames, wh.form) ? wh.form : null
       wh.bornAt = Number(wh.bornAt) > 0 ? Number(wh.bornAt) : out.updatedAt
+      migrateDailyRoutine(wh,out.updatedAt)
       // v2 的 girlAt 代表已进入少女期。迁移后保留该阶段与累计饭量。
       ensureTrait(wh);birthRoute(wh)
       if(wh.form && !wh.departedAt)wh.departedAt=wh.milestones?.[4]||Date.now()

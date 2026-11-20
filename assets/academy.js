@@ -27,10 +27,33 @@ export function upgradeEconomy(state) {
   state.economyVersion=3
 }
 const dailyUses=3
+function localDay(time=Date.now()){
+  const date=new Date(time)
+  return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-')
+}
+
+// Old saves used growth age (including lessons and hourglasses) as the daily key.
+export function migrateDailyRoutine(w,savedAt){
+  if(![w.routine?.day,w.lastGiftDay,w.lastEnergyFoodDay].some(Number.isInteger))return
+  const oldDay=ageDays(w,savedAt)+1,day=localDay(savedAt)
+  if(w.routine?.day===oldDay){
+    // The old automatic rollover uniquely saved a fresh routine including its max.
+    if(w.practiceDays>0 && w.routine.used===0 && Number.isFinite(w.routine.max)){
+      w.routine.used=dailyUses
+      w.routine.energy=0
+    }
+    w.routine.day=day
+  }
+  for(const field of ['lastGiftDay','lastEnergyFoodDay']){
+    if(Number.isInteger(w[field]))w[field]=w[field]===oldDay?day:null
+  }
+  if(Number.isInteger(w.routine?.day))delete w.routine
+}
 function schedule(w) {
-  const day=ageDays(w)+1
-  const max=energyLimit(w),r=w.routine?.day===day?w.routine:{day,energy:max,used:0}
-  return {...r,energy:Math.min(r.energy,max),max}
+  const day=localDay(),max=energyLimit(w)
+  const r=w.routine?.day===day?w.routine:{day,energy:max,used:0}
+  const energy=Math.min(r.energy,max)
+  return {...r,energy,max,closed:r.used>=dailyUses || energy<2}
 }
 function scores(whale) {
   return subjects.map((_,i) => Math.min(100, Math.max(0, Number(whale.study?.[i]) || 0)))
@@ -50,8 +73,9 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const w=getState().whales.find(w=>w.id===id)
     if(!w||w.stage!==0||!w.meals||resting(w))return
     const today=schedule(w)
-    w.routine={day:today.day,used:today.used+1,energy:Math.max(0,today.energy-2)}
-    if(!w.routine.energy){w.practiceDays=(w.practiceDays||0)+1;updateStage(w,Date.now(),true)}
+    if(today.closed)return
+    w.routine={day:today.day,used:today.used+1,energy:today.energy-2}
+    if(schedule(w).closed){w.practiceDays=(w.practiceDays||0)+1;updateStage(w,Date.now(),true)}
     save();render()
   }
   controls.routine=schedule
@@ -135,11 +159,11 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     if(item.kind==='clock')return w.stage===4?'已成年':''
     if(w.stage===0)return '从 Q 版小人阶段开始'
     const today=schedule(w)
+    if(today.closed)return '今日已休息 · 明日 0 点恢复'
     if(item.kind==='gift')return w.lastGiftDay===today.day?'今天已吃心情料理':mood(w)>=100?'心情已满':''
     if(item.kind==='energy')return w.lastEnergyFoodDay===today.day?'今天已吃体力料理':today.energy>=today.max?'体力已满':''
     if(w.diploma)return '已毕业'
     if(resting(w))return '心情低落，正在休息'
-    if(today.used>=dailyUses)return '今日教材已用完'
     if(today.energy<sessionEnergy(w,item))return '体力不足'
     if(item.effects.every(([a])=>a>=3 && talents(w)[a-3]>=100))return '属性已满'
     return ''
@@ -187,11 +211,9 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const feeling=lessonFeeling(w,item);if(feeling)changeMood(w,feeling)
     w.routine={day:today.day,used:today.used+1,energy:today.energy-energy}
     let change=''
-    if(w.routine.energy===1){w.routine.energy=0;change=' 最后 1 点体力用于整理教材。'}
-    if(w.routine.used>=dailyUses || w.routine.energy<2){
+    if(schedule(w).closed){
       w.practiceDays=(w.practiceDays||0)+1
-      w.routine=schedule(w)
-      change+=' 已休息，进入下一天。'+updateStage(w,Date.now(),true)
+      change=' 学堂成长 +1 天。今天的学习已结束，明日 0 点恢复。'+updateStage(w,Date.now(),true)
     }
     save()
     return w.name+'使用了'+name+'，'+report.join('、')+'。'+change
@@ -220,9 +242,10 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     el('academy-stats').textContent = !w ? '选择一位住民即可查看她能使用的物品。' : subjects.map((name,i) => name+' '+stats[i]+'/100').join('　')
     if (w && !w.form) el('academy-stats').textContent += '　成长日龄 '+ageDays(w)+' 天'
     const today=w?schedule(w):null
-    el('academy-day').textContent=w && w.stage>=1 && !w.diploma?'第 '+today.day+' 个成长日 · 体力 '+today.energy+'/'+today.max+' · 心情 '+mood(w)+'/100 · 今日还可使用 '+(dailyUses-today.used)+' 份教材':''
+    el('academy-day').textContent=w && w.stage>=1 && !w.diploma?'第 '+(ageDays(w)+1)+' 个成长日 · 体力 '+today.energy+'/'+today.max+' · 心情 '+mood(w)+'/100 · 今日还可使用 '+(today.closed?0:dailyUses-today.used)+' 份教材':''
     el('academy-likes').textContent=w && state.showPreferences?preferenceText(w):''
-    if(w && w.stage>=1 && resting(w))el('academy-day').textContent='心情 '+mood(w)+'/100 · 正在休息。可吃心情料理，或等自然恢复。'
+    if(w && today.closed)el('academy-day').textContent='今日已休息，明日 0 点恢复学习和进食。'
+    else if(w && w.stage>=1 && resting(w))el('academy-day').textContent='心情 '+mood(w)+'/100 · 正在休息。可吃心情料理，或等自然恢复。'
 
     el('store-wallet').textContent=el('academy-wallet').textContent
     market.refresh()

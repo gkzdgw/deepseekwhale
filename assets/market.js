@@ -44,7 +44,7 @@ function describe(item,state,w,routine){
     default:{
       const show=w && state.showPreferences
       const stats=item.effects.map(([a,v])=>attributes[a]+' +'+(show?learningGain(w,a,v):v))
-      return (show?'预计':'基础')+' '+stats.join(' · ')+' / '+(show?sessionEnergy(w,item):item.energy)+' 体力'
+      return (show?'预计':'基础')+' '+stats.join(' · ')+' · 消耗'+(w?sessionEnergy(w,item):item.energy)+'点体力'
     }
   }
 }

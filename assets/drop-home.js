@@ -54,7 +54,7 @@ export function mountDropHome(root,getState,itemNames,controls){
     el('room-mood').value=mood(w);el('room-mood-value').textContent=mood(w)+'/100'+(resting(w)?' · 正在休息':'')
     const stamina=controls.routine(w)
     el('room-energy').max=stamina.max;el('room-energy').value=stamina.energy
-    el('room-energy-value').textContent=stamina.energy+'/'+stamina.max
+    el('room-energy-value').textContent=stamina.energy+'/'+stamina.max+(stamina.closed?' · 明日 0 点恢复':'')
 
     el('nursery-progress').hidden=w.stage!==0
     el('nursery-count').textContent=mealProgress(w)
@@ -71,10 +71,9 @@ export function mountDropHome(root,getState,itemNames,controls){
     if(waitingForRice(w))el('room-next-stage').textContent='白饭 '+mealProgress(w)+' · 再吃 '+(nurseryMeals-w.meals)+' 份就长成 Q 版鲸鱼娘。'
     const info=visit(w)
     el('room-visit').textContent=w.stage===4?'于 '+date(info.left)+' 搬到海港商街 · '+(info.visiting?'今天在家，'+date(info.until)+' 返回商街':'下次回家 '+date(info.next)):((getState().idleMode?'放置养成开启':'手动培养')+' · 已完成 '+(w.idleLessons||0)+' 次自主学习')
-    const routine=controls.routine(w)
     el('room-play').hidden=w.stage!==0
-    el('room-play').disabled=!w.meals||resting(w)
-    el('room-play').textContent='嬉水 · 2 体力（剩余 '+routine.energy+'/'+routine.max+'）'
+    el('room-play').disabled=!w.meals||resting(w)||stamina.closed
+    el('room-play').textContent=stamina.closed?'今日已休息':'嬉水 · 消耗 2 点体力'
     const records=Object.entries(w.milestones||{}).filter(([i])=>Number(i)!==3).map(([i,ts])=>date(ts)+' '+stages[zone({stage:Number(i)})])
     el('room-record').textContent=records.join(' / ')
     const stock=controls.rice()
