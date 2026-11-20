@@ -137,6 +137,20 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
     const n=riceQuantity.valueAsNumber
     transact(()=>{el('meal-feedback').textContent=buy(riceItem,n)})
   }
+  const clockItem=catalog.findIndex(item=>item.kind==='clock')
+  const clockQuantity=el('clock-quantity'),clockButton=el('buy-clock'),clockFeedback=el('clock-feedback')
+  function refreshClock(){
+    const s=getState(),n=clockQuantity.valueAsNumber,price=s.prices[clockItem]
+    const reason=buyReason(s,clockItem,n)
+    el('clock-stock').textContent='持有 '+owned(s,clockItem).toLocaleString()+' 个 · '+priceText(price)+' Token / 个'
+    clockButton.disabled=Boolean(reason)
+    clockButton.textContent=reason||'购买 · '+priceText(price*n)+' Token'
+  }
+  clockQuantity.oninput=()=>{clockFeedback.textContent='';refreshClock()}
+  clockButton.onclick=()=>{
+    const n=clockQuantity.valueAsNumber
+    transact(()=>{clockFeedback.textContent=buy(clockItem,n)})
+  }
   quantity.oninput=render
   for(const kiosk of root.querySelectorAll('[data-shop]'))kiosk.onclick=e=>{
     e.stopPropagation();readSharedChanges()
@@ -163,6 +177,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   const snapshots={}
   function refresh(){
     const s=getState()
+    refreshClock()
     for(const [prefix,dialog,container] of views){
       if(!dialog.open)continue
       const isBag=prefix!=='store',inline=prefix==='room'

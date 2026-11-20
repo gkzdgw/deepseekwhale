@@ -810,6 +810,15 @@
 .map-avatar .school-icon{width:40px;height:40px;margin:0}.map-avatar img{width:100%;height:100%;object-fit:cover}
 .map-meta{display:block;color:#c2d2de;font-size:12px;margin-top:4px}
 .map-wallet{font:600 14px/1.4 system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#abe7e3}
+#academy-wallet{margin-left:auto}
+.clock-counter{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:7px 12px;background:#142538;border:1px solid #405b72;border-radius:10px;color:#edf5fa;font:14px/1.4 system-ui,sans-serif}
+.clock-item,.clock-order,.clock-order label{display:flex;align-items:center;gap:8px}
+.clock-item img{object-fit:contain}.clock-item strong,.clock-item small{display:block}
+.clock-item small,.clock-order label,#clock-feedback{font-size:12px;color:#bfcedc}
+.clock-order{flex-wrap:wrap}.clock-order input{box-sizing:border-box;width:5em;padding:6px;border:1px solid #506b82;border-radius:6px;color:#eff7fb;background:#192d40;font:inherit}
+.clock-order .btn{padding:7px 11px;background:#a9e2dc;color:#153840;font:650 13px/1.4 system-ui,sans-serif}.clock-order .btn:disabled{opacity:.52;cursor:default}
+#clock-feedback{flex-basis:100%;margin:0}#clock-feedback:empty{display:none}
+@media(max-width:850px){.clock-counter{box-sizing:border-box;width:100%;justify-content:space-between}}
 .map-toolbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:12px 0 8px}
 .map-toolbar .habitat-nav{margin:0;gap:5px}
 .map-toolbar button,.school .map-toolbar button{font:500 13px/1.4 system-ui,sans-serif;background:#192b40;color:#cfdeea;border:1px solid #436078;border-radius:7px;padding:5px 9px;cursor:pointer}
@@ -1064,7 +1073,13 @@
     </main>
 
     <main class="card stage hidden" id="view-academy">
-      <div class="school"><header class="map-banner"><div class="map-heading"><span class="map-avatar"><i class="school-icon icon-school" aria-hidden="true"></i></span><div><h2>成长学堂</h2><span class="map-meta">水滴之家</span></div></div><span class="map-wallet" id="academy-wallet"></span></header>
+      <div class="school"><header class="map-banner"><div class="map-heading"><span class="map-avatar"><i class="school-icon icon-school" aria-hidden="true"></i></span><div><h2>成长学堂</h2><span class="map-meta">水滴之家</span></div></div><span class="map-wallet" id="academy-wallet"></span>
+        <section class="clock-counter" aria-label="时光沙漏快捷购买">
+          <div class="clock-item"><img src="/__dim-womb/outfits/hourglass.png" width="36" height="36" alt=""><div><strong>时光沙漏</strong><small id="clock-stock"></small></div></div>
+          <div class="clock-order"><label>数量 <input id="clock-quantity" type="number" inputmode="numeric" min="1" max="9999" step="1" value="1"></label><button class="btn" type="button" id="buy-clock"></button></div>
+          <small id="clock-feedback" role="status"></small>
+        </section>
+      </header>
       <p id="history-offer" hidden><button class="btn" id="history-credit" type="button">领取历史账单奖励</button> <span class="hint" id="history-note" role="status"></span></p>
 <section class="drop-home" aria-label="水滴之家"><div class="map-toolbar"><div class="habitat-nav" id="room-tabs" role="group" aria-label="住民地图"></div><div class="map-pager"><button type="button" id="room-prev" aria-label="上一组住民">‹</button><span id="room-page"></span><button type="button" id="room-next" aria-label="下一组住民">›</button></div></div><div class="map-wrap"><div id="room-floor"></div><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div></div><p class="hint" id="room-hint"></p>
       <dialog id="resident-sheet" aria-labelledby="room-name"><header class="resident-heading"><strong>住民档案</strong><button type="button" class="btn ghost" id="room-close">关闭</button></header><div class="resident-info"><figure class="portrait-card"><img id="room-portrait" alt=""></figure><div><h3 id="room-name"></h3><p id="room-style"></p><p id="room-interests"></p><div id="room-scores" class="resident-bars"></div><div id="nursery-progress" hidden><label for="nursery-bar">幼鲸白饭 <b id="nursery-count"></b></label><progress id="nursery-bar" max="30" value="0"></progress></div><div class="resident-bars"><label data-group="social">心情 <span id="room-mood-value"></span><progress id="room-mood" aria-label="心情" max="100"></progress></label><label data-group="practice">体力 <span id="room-energy-value"></span><progress id="room-energy" aria-label="体力" max="6"></progress></label></div><div id="room-track"></div><p id="room-age"></p><p id="room-next-stage"></p><p id="room-record"></p><p id="room-visit"></p><button type="button" class="btn" id="room-play"></button><button type="button" class="btn" id="room-feed"></button> </div>
