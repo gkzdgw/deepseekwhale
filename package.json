@@ -1,0 +1,40 @@
+{
+  "name": "dsh-dim-womb",
+  "version": "0.12.0",
+  "description": "次元之家 · DSH 全年龄鲸鱼养成与成长学堂",
+  "type": "module",
+  "private": true,
+  "author": "lightdream-gkdzgw",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis-plugin",
+    "dashboard",
+    "local"
+  ],
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "assets",
+    "README.md"
+  ],
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
