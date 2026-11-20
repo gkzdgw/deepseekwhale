@@ -759,6 +759,29 @@
 #bag-items button{width:100%}#bag-items article>small{align-self:start}
 #bag-summary{color:#a5e4e1}#store-feedback,#academy-feedback{color:#b8f2de}
 #school-bag [role=status]:not(:empty),#store-feedback:not(:empty){padding:8px 12px;border-left:2px solid #78c4b5;background:#172d40}
+
+#resident-sheet{width:min(1180px,96vw);max-height:94dvh;padding:clamp(14px,2vw,26px);border-radius:18px;border-color:#668999}
+.resident-heading{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;color:#afcfdb;font-size:14px}
+#resident-sheet .resident-info{grid-template-columns:minmax(120px,.68fr) minmax(220px,1fr) minmax(310px,1.32fr);align-items:start;gap:clamp(12px,1.6vw,22px)}
+#resident-sheet .portrait-card{min-height:280px;align-self:stretch;max-height:65dvh}
+#resident-sheet .portrait-card img{height:100%;min-height:200px;max-height:62dvh}
+#resident-sheet #room-name{font-size:clamp(22px,2vw,32px);margin-top:0}
+.resident-inventory{min-width:0;padding:14px;background:linear-gradient(160deg,#29475c,#1a3043);border:1px solid #50788a;border-radius:13px;color:#e8f5fa;color-scheme:dark}
+.resident-inventory header{display:flex;align-items:center;gap:8px}.resident-inventory header img{width:36px;height:36px;object-fit:contain}
+.resident-inventory header h3{font-size:19px;margin:0}.resident-inventory header span{margin-left:auto;color:#acd9d6;font-size:12px}
+.resident-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(80px,.66fr);gap:8px;margin:12px 0 6px}
+.resident-filters input,.resident-filters select{min-width:0;width:100%;box-sizing:border-box;font:inherit;font-size:13px;color:#f3fbff;background:#172b3e;border:1px solid #608194;border-radius:7px;padding:7px 8px}
+.resident-filters input::placeholder{color:#b8c9d3}.resident-available{display:inline-flex;align-items:center;gap:5px;min-height:26px;color:#c5dae2;font-size:12px}
+#room-items{display:grid;align-content:start;gap:7px;margin-top:6px;max-height:48dvh;overflow-y:auto;scrollbar-gutter:stable}
+#room-items article{display:grid;grid-template-columns:42px minmax(0,1fr) max-content;grid-template-areas:"icon name count" "icon effect action";align-items:center;gap:2px 8px;background:#20394d;border:1px solid #466779;border-radius:9px;padding:9px}
+#room-items article>i{grid-area:icon;width:40px;height:40px;align-self:center}.resident-inventory .item-rank{display:none}
+#room-items strong{grid-area:name;font-size:14px;color:#f1f7fd}#room-items small{grid-area:effect;font-size:12px;line-height:1.4;color:#bbd2df;overflow-wrap:anywhere}
+#room-items b{grid-area:count;justify-self:end;color:#a7dcd6;font-size:12px}
+#room-items button{grid-area:action;max-width:100px;font-size:12px;padding:4px 8px;min-height:28px}
+#room-items button:disabled{background:#273a49;color:#b4c2cc;border:1px solid #475b6b;opacity:1;cursor:default}
+#resident-sheet #room-feedback:not(:empty){color:#a3ecda;margin:8px 0 0}#resident-sheet #room-feedback:empty{display:none}
+@media(max-width:840px){#resident-sheet .resident-info{grid-template-columns:minmax(90px,.65fr) minmax(0,1.35fr)}.resident-inventory{grid-column:1/-1}#resident-sheet .portrait-card{min-height:180px}#room-items{max-height:none;overflow:visible;scrollbar-gutter:auto}}
+@media(max-width:480px){#resident-sheet{padding:12px}#resident-sheet .resident-info{grid-template-columns:minmax(62px,.34fr) minmax(0,1fr);gap:10px}#resident-sheet .resident-bars{grid-template-columns:1fr 1fr}#resident-sheet .portrait-card{min-height:110px;align-self:start;padding:2px}#resident-sheet .portrait-card img{min-height:100px;height:auto}.resident-inventory{padding:10px}}
 </style>
 </head>
 <body class="archive-mode">
@@ -987,7 +1010,13 @@
       <p><button class="btn" id="history-credit" type="button">领取历史账单奖励</button> <span class="hint" id="history-note" role="status"></span></p>
 <section class="drop-home"><header><h3>水滴之家</h3><span><button type="button" id="room-prev" aria-label="上一组住民">‹</button> <span id="room-page"></span> <button type="button" id="room-next" aria-label="下一组住民">›</button></span></header>
       <div class="habitat-nav" id="room-tabs"></div><div class="map-wrap"><div id="room-floor"></div><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div></div><p class="hint" id="room-hint"></p>
-      <dialog id="resident-sheet" aria-labelledby="room-name"><button type="button" class="btn ghost" id="room-close">关闭</button><div class="resident-info"><figure class="portrait-card"><img id="room-portrait" alt=""></figure><div><h3 id="room-name"></h3><p id="room-style"></p><p id="room-interests"></p><div id="room-scores" class="resident-bars"></div><div id="nursery-progress" hidden><label for="nursery-bar">幼鲸白饭 <b id="nursery-count"></b></label><progress id="nursery-bar" max="30" value="0"></progress></div><div class="resident-bars"><label data-group="social">心情 <span id="room-mood-value"></span><progress id="room-mood" aria-label="心情" max="100"></progress></label><label data-group="practice">体力 <span id="room-energy-value"></span><progress id="room-energy" aria-label="体力" max="6"></progress></label></div><div id="room-track"></div><p id="room-age"></p><p id="room-next-stage"></p><p id="room-record"></p><p id="room-visit"></p><button type="button" class="btn" id="room-play"></button><button type="button" class="btn" id="room-feed"></button> <button type="button" class="btn" id="room-bag" aria-haspopup="dialog">从背包使用</button></div></div></dialog></section><details class="route-guide"><summary>培养路线图鉴</summary><p>三项数字依次为学识、艺术、体能的建议吸收比例，加餐份数为人形阶段的料理使用参考。单科成绩满分后也可继续研习，调整路线。</p><ul id="academy-routes"></ul></details>      <h3><i class="school-icon icon-diploma"></i> 成年成绩榜</h3><ol id="academy-board"></ol>
+      <dialog id="resident-sheet" aria-labelledby="room-name"><header class="resident-heading"><strong>住民档案</strong><button type="button" class="btn ghost" id="room-close">关闭</button></header><div class="resident-info"><figure class="portrait-card"><img id="room-portrait" alt=""></figure><div><h3 id="room-name"></h3><p id="room-style"></p><p id="room-interests"></p><div id="room-scores" class="resident-bars"></div><div id="nursery-progress" hidden><label for="nursery-bar">幼鲸白饭 <b id="nursery-count"></b></label><progress id="nursery-bar" max="30" value="0"></progress></div><div class="resident-bars"><label data-group="social">心情 <span id="room-mood-value"></span><progress id="room-mood" aria-label="心情" max="100"></progress></label><label data-group="practice">体力 <span id="room-energy-value"></span><progress id="room-energy" aria-label="体力" max="6"></progress></label></div><div id="room-track"></div><p id="room-age"></p><p id="room-next-stage"></p><p id="room-record"></p><p id="room-visit"></p><button type="button" class="btn" id="room-play"></button><button type="button" class="btn" id="room-feed"></button> </div>
+          <section class="resident-inventory" aria-labelledby="room-inventory-title">
+            <header><img src="/__dim-womb/outfits/family-backpack.png" width="38" height="38" alt=""><h3 id="room-inventory-title">家庭背包</h3><span id="room-summary"></span></header>
+            <div class="resident-filters"><input type="search" id="room-search" placeholder="搜索物品" aria-label="搜索背包物品"><select id="room-attribute" aria-label="物品分类"></select></div>
+            <label class="resident-available"><input id="room-usable" type="checkbox"> 仅显示当前可用</label>
+            <div id="room-items"></div><p id="room-empty" hidden></p><p id="room-feedback" role="status" aria-live="polite"></p>
+          </section></div></dialog></section><details class="route-guide"><summary>培养路线图鉴</summary><p>三项数字依次为学识、艺术、体能的建议吸收比例，加餐份数为人形阶段的料理使用参考。单科成绩满分后也可继续研习，调整路线。</p><ul id="academy-routes"></ul></details>      <h3><i class="school-icon icon-diploma"></i> 成年成绩榜</h3><ol id="academy-board"></ol>
       <p class="hint">三项基础占 70%，六项专长占 30%，合计折算为 300 分。总分 240 起为 S，180 起为 A，100 起为 B，其余为 C。同分并列。</p><dialog id="school-store" aria-labelledby="store-title">
         <header class="store-head"><div><h2 id="store-title">学堂商店</h2><b id="store-wallet"></b></div><div><button class="btn" id="store-bag" type="button">查看背包</button> <button class="btn ghost" id="store-close" type="button">关闭</button></div></header>
         <div class="shop-filters"><label>分类 <select id="store-attribute"></select></label><label>档位 <select id="store-tier"></select></label><label>购买数量 <input type="number" id="store-quantity" min="1" max="9999" step="1" value="1"></label></div>
@@ -1071,7 +1100,7 @@
         <h2>次元之家使用说明</h2>
         <h3>迎接第一只小鲸鱼</h3><p>从标题栏切换到「次元之家」，可以在总览继续聊天。使用 DSH 积攒爱情值，达到门槛后点击「开始孕育」。默认 24 小时后出生，离线也计时。「设置」可调整下一胎的时长。</p>
         <h3>水族馆与家庭背包</h3><p>在水族馆填入份数后点「购买白饭」，或在地图上的学堂商店批量购买。选「投喂一份」、点水面撒饭，或打开幼鲸档案定向投喂。每只幼鲸有独立的进度，实际吃完第 30 份立即长成 Q 版鲸鱼娘，搬进水下乐园。</p>
-        <p>点击地图右上角的鲸鱼背包即可查看库存。要给某个角色使用物品，可以从她的档案打开背包。人形阶段的心情料理和体力料理各有九档，每个成长日各可吃一份。</p>
+        <p>点击地图右上角的鲸鱼背包即可查看库存。打开住民档案，右侧背包会显示已有物品。可按名称、分类或当前可用状态筛选，点击「使用 1 份」即可给这位住民使用。人形阶段的心情料理和体力料理各有九档，每个成长日各可吃一份。</p>
         <h3>上课、放置与毕业</h3><p>Q 版阶段默认 20 个成长日，少女两个学期各 30 个成长日。自然经过一天增加一个成长日，耗尽体力完成课程也能推进一天，时光沙漏默认额外推进一天。出生倾向影响九项属性的学习效果，可在设置中显示偏好。</p>
         <p>放置养成默认开启，进入人形后会按性格缓慢学习。心情过低时会休息。成年评级从 C 到 S，S 最高，成女搬去海港商街，每七天回家探望一天。</p>
         <h3>游戏 Token 与设置</h3><p>成长学堂可按本地历史账单汇总领取一次游戏 Token，按 10 元折合 1 亿估算。物价设置可调整白饭、教材、料理的售价和沙漏天数，点「保存」生效。</p>

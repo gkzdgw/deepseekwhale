@@ -95,8 +95,8 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     el('price-status').textContent='物价已保存。'
   }
   const market=mountMarket(root,{getState,readSharedChanges,save,render,current,routine:schedule,
-    availableRice:controls.rice,refreshPantry:controls.refreshPantry,useItem,unavailable})
-  controls.openBag=market.openBag
+    availableRice:controls.rice,refreshPantry:controls.refreshPantry,useItem,unavailable,residentId:home.selectedId})
+  controls.showResidentItems=market.showResidentItems
   const claim = el('history-credit'), note = el('history-note')
   let claiming = false
   claim.onclick = async () => {

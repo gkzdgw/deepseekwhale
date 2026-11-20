@@ -49,7 +49,7 @@ function describe(item,state,w,routine){
   }
 }
 
-export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,useItem,unavailable}){
+export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,useItem,unavailable,residentId}){
   const el=id=>root.getElementById(id)
   const shop=el('school-store'),bag=el('school-bag'),quantity=el('store-quantity')
   root.querySelector('.app').append(shop,bag)
@@ -74,7 +74,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
     if(catalog[i].kind==='rice')refreshPantry()
     return '已购入 '+catalog[i].name+' × '+n+'，共 '+priceText(s.prices[i]*n)+' Token。'
   }
-  function buildCards(container,isBag){
+  function buildCards(container,prefix){
     return catalog.map((item,i)=>{
       const card=document.createElement('article'),icon=document.createElement('i'),rank=document.createElement('span')
       const name=document.createElement('strong'),effect=document.createElement('small'),count=document.createElement('b'),button=document.createElement('button')
@@ -82,10 +82,10 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       paintIcon(icon,item);name.textContent=item.name
       button.type='button';button.className='btn';button.dataset.item=i
       button.onclick=()=>{
-        const id=current()?.id,n=quantity.valueAsNumber
+        const id=prefix==='room'?residentId():current()?.id,n=quantity.valueAsNumber
         transact(()=>{
-          const feedback=isBag?useItem(i,id):buy(i,n)
-          el(isBag?'academy-feedback':'store-feedback').textContent=feedback
+          const feedback=prefix==='store'?buy(i,n):useItem(i,id)
+          el(prefix==='bag'?'academy-feedback':prefix+'-feedback').textContent=feedback
         })
       }
       card.style.order=item.tier||0
@@ -93,14 +93,18 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       return {card,effect,count,button}
     })
   }
-  const views=[['store',shop,el('academy-shop')],['bag',bag,el('bag-items')]]
+  const views=[['store',shop,el('academy-shop')],['bag',bag,el('bag-items')],['room',el('resident-sheet'),el('room-items')]]
   const grids={}
   for(const [prefix,dialog] of views){
     for(const category of categories)el(prefix+'-attribute').add(new Option(category,category))
+    const category=el(prefix+'-attribute')
+    category.options[0].textContent='全部分类'
+    category.onchange=render
+    if(prefix==='room')continue
     const tier=el(prefix+'-tier')
     tier.add(new Option('全部档位','0'))
     for(let n=1;n<=9;n++)tier.add(new Option('第 '+n+' 档',String(n)))
-    el(prefix+'-attribute').onchange=tier.onchange=render
+    tier.onchange=render
     el(prefix+'-close').onclick=()=>dialog.close()
   }
   const riceItem=catalog.findIndex(item=>item.kind==='rice')
@@ -125,27 +129,39 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   }
   el('store-bag').onclick=()=>openBag()
   for(const btn of root.querySelectorAll('[data-bag]'))btn.onclick=()=>openBag()
+  const search=el('room-search'),usable=el('room-usable')
+  search.oninput=render
+  usable.onchange=render
+  function showResidentItems(){
+    search.value='';usable.checked=false;el('room-attribute').value='全部'
+    el('room-feedback').textContent='';el('room-items').scrollTop=0
+    refresh()
+  }
   const snapshots={}
   function refresh(){
-    const s=getState(),w=current()
+    const s=getState()
     for(const [prefix,dialog,container] of views){
       if(!dialog.open)continue
-      const isBag=dialog===bag,category=el(prefix+'-attribute').value,tier=Number(el(prefix+'-tier').value),n=quantity.valueAsNumber
-      const cards=grids[prefix] ||= buildCards(container,isBag)
+      const isBag=prefix!=='store',inline=prefix==='room'
+      const w=inline?s.whales.find(whale=>whale.id===residentId()):current()
+      const query=inline?search.value.trim().toLowerCase():'',onlyUsable=inline && usable.checked
+      const category=el(prefix+'-attribute').value,tier=inline?0:Number(el(prefix+'-tier').value),n=quantity.valueAsNumber
+      const cards=grids[prefix] ||= buildCards(container,prefix)
       const today=w?routine(w):null
-      const key=JSON.stringify([category,tier,n,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
+      const key=JSON.stringify([category,tier,n,query,onlyUsable,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
       if(snapshots[prefix]===key)continue
       snapshots[prefix]=key
       let shown=0,kinds=0,units=0
       cards.forEach(({card,effect,count,button},i)=>{
         const item=catalog[i],stock=owned(s,i)
         if(stock){kinds++;units+=stock}
-        card.hidden=!matches(item,category,tier) || (isBag && stock<=0)
+        const reason=isBag && stock?unavailable(i,w):''
+        card.hidden=!matches(item,category,tier) || (isBag && stock<=0) ||
+          (query && !item.name.toLowerCase().includes(query)) || (onlyUsable && Boolean(reason))
         if(card.hidden)return
         shown++
         effect.textContent=describe(item,s,isBag?w:null,routine)
         if(isBag){
-          const reason=unavailable(i,w)
           count.textContent='× '+stock.toLocaleString();count.setAttribute('aria-label','持有 '+stock+' 份')
           button.hidden=!w
           button.disabled=Boolean(reason);button.textContent=reason||'使用 1 份'
@@ -156,12 +172,12 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
         }
       })
       if(isBag){
-        el('bag-resident').hidden=!w
-        el('bag-summary').textContent=kinds+' 种物品 · 共 '+units.toLocaleString()+' 份'
-        el('bag-empty').textContent=kinds?'此分类下没有库存。':'背包还是空的。到地图上的学堂商店购买物品。'
+        if(!inline)el('bag-resident').hidden=!w
+        el(prefix+'-summary').textContent=kinds+' 种物品 · 共 '+units.toLocaleString()+' 份'
+        el(prefix+'-empty').textContent=kinds?'没有符合当前筛选的物品。':'背包还是空的。到地图上的学堂商店购买物品。'
       }
       el(prefix+'-empty').hidden=shown>0
     }
   }
-  return {openBag,refresh,isOpen:()=>shop.open||bag.open}
+  return {showResidentItems,refresh,isOpen:()=>views.some(([,dialog])=>dialog.open)}
 }

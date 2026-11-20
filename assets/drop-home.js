@@ -75,6 +75,7 @@ export function mountDropHome(root,getState,itemNames,controls){
     if(!w)return
     selected=id;details(w)
     if(!dialog.open)dialog.showModal()
+    controls.showResidentItems()
   }
   function refreshDetails(){
     if(!dialog.open)return
@@ -82,7 +83,6 @@ export function mountDropHome(root,getState,itemNames,controls){
     if(w)details(w);else dialog.close()
   }
   el('room-play').onclick=()=>{const id=selected;const play=()=>{controls.play(id);refreshDetails()};if(navigator.locks)navigator.locks.request('dsh-whale-school-purchase',play);else play()}
-  el('room-bag').onclick=()=>controls.openBag(selected)
   el('room-feed').onclick=()=>{
     const id=selected,feed=()=>{controls.feed(id);refreshDetails()}
     if(navigator.locks)navigator.locks.request('dsh-whale-school-purchase',feed);else feed()
@@ -109,5 +109,5 @@ export function mountDropHome(root,getState,itemNames,controls){
       b.onclick=()=>open(w.id);return b
     }))
   }
-  return {render,travel,open,refreshDetails}
+  return {render,travel,open,refreshDetails,selectedId:()=>selected}
 }
