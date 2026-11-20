@@ -35,7 +35,7 @@ function paintIcon(icon,item){
 function describe(item,state,w,routine){
   switch(item.kind){
     case 'rice':return '仅限幼鲸 · 白饭成长进度 +1 份'
-    case 'clock':return '当前地图全体恢复体力与行动次数 · 成长期 +'+state.hourglassDays+' 天'
+    case 'clock':return '当前地图恢复体力、行动与心情料理次数 · 成长期 +'+state.hourglassDays+' 天'
     case 'gift':return '第二阶段起 · 心情 +'+item.cheer+(w?.stage>=1?'（当前 '+mood(w)+' → '+Math.min(100,mood(w)+item.cheer)+'）':'')
     case 'energy':{
       const day=w?.stage>=1?routine(w):null

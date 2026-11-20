@@ -49,6 +49,10 @@ export function migrateDailyRoutine(w,savedAt){
   }
   if(Number.isInteger(w.routine?.day))delete w.routine
 }
+// Older saves recorded only the calendar day, even when an hourglass had just been used.
+function moodMealDay(w,day){
+  return w.lastHourglassDay===day ? day+'/clock' : day
+}
 function schedule(w) {
   const day=localDay(),max=energyLimit(w)
   const r=w.routine?.day===day?w.routine:{day,energy:max,used:0}
@@ -157,9 +161,9 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const canUse=residents.some(w=>{
       if(w.stage<4)return true
       const today=schedule(w)
-      return today.energy<today.max || today.used>0
+      return today.energy<today.max || today.used>0 || (mood(w)<100 && w.lastGiftDay===moodMealDay(w,today.day))
     })
-    return {name,residents,reason:canUse?'':residents.length?'住民已成年且体力已满':'当前地图暂无住民'}
+    return {name,residents,reason:canUse?'':residents.length?'成年住民当前无需恢复':'当前地图暂无住民'}
   }
   function showTimePassage(map,days){
     root.querySelector('.time-passage')?.remove()
@@ -186,11 +190,12 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
         updateStage(resident,now,true,false)
       }
       resident.lastHourglassDay=localDay(now)
+      resident.lastGiftDay=null
       resident.routine={day:resident.lastHourglassDay,energy:energyLimit(resident),used:0}
     }
     save()
     showTimePassage(scope.name,growing?state.hourglassDays:0)
-    return scope.name+'的 '+scope.residents.length+' 位住民已恢复体力和行动次数。'+(growing?'成长中的住民已推进 '+state.hourglassDays+' 天。':'')
+    return scope.name+'的 '+scope.residents.length+' 位住民已恢复体力和行动次数，心情料理次数已刷新。'+(growing?'成长中的住民已推进 '+state.hourglassDays+' 天。':'')
   }
   function unavailable(i,w){
     const item=catalog[i]
@@ -203,7 +208,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     if(w.stage===0)return '从 Q 版小人阶段开始'
     const today=schedule(w)
     if(today.closed)return '今日已休息 · 明日 0 点恢复'
-    if(item.kind==='gift')return w.lastGiftDay===today.day?'今天已吃心情料理':mood(w)>=100?'心情已满':''
+    if(item.kind==='gift')return w.lastGiftDay===moodMealDay(w,today.day)?'本轮已吃心情料理':mood(w)>=100?'心情已满':''
     if(item.kind==='energy')return w.lastEnergyFoodDay===today.day?'今天已吃体力料理':today.energy>=today.max?'体力已满':''
     if(w.diploma)return '已毕业'
     if(today.moodRest)return '心情低落 · 可用沙漏或心情料理'
@@ -226,7 +231,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
       const before=item.kind==='gift'?mood(w):today.energy
       let after,label
       if(item.kind==='gift'){
-        changeMood(w,item.cheer);w.lastGiftDay=today.day
+        changeMood(w,item.cheer);w.lastGiftDay=moodMealDay(w,today.day)
         after=mood(w);label='心情'
       }else{
         today.energy=Math.min(today.max,today.energy+item.restore);w.lastEnergyFoodDay=today.day
