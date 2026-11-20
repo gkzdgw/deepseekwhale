@@ -89,7 +89,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   function buyReason(state,i,n){
     if(!Number.isSafeInteger(n)||n<1||n>9999)return '数量须为 1–9999 的整数'
     if(!Number.isSafeInteger(owned(state,i)+n)||(catalog[i].kind==='rice' && state.riceStock+n>9999))return '库存容量不足'
-    return state.prices[i]*n>state.tokenPool?'余额不足':''
+    return state.prices[i]*n>state.tokenPool?'游戏币余额不足':''
   }
   function buy(i,n){
     const s=getState(),reason=buyReason(s,i,n)
@@ -99,7 +99,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
     else s.schoolBag[i]=owned(s,i)+n
     save()
     if(catalog[i].kind==='rice')refreshPantry()
-    return '已购入 '+catalog[i].name+' × '+n+'，共 '+priceText(s.prices[i]*n)+' Token。'
+    return '已购入 '+catalog[i].name+' × '+n+'，共 '+priceText(s.prices[i]*n)+' 游戏 Token。'
   }
   function buildCards(container,prefix){
     return catalog.map((item,i)=>{
@@ -143,12 +143,12 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   function refreshClock(scope){
     const s=getState(),n=clockQuantity.valueAsNumber,price=s.prices[clockItem]
     const reason=buyReason(s,clockItem,n)
-    el('clock-stock').textContent='持有 '+owned(s,clockItem).toLocaleString()+' 个 · '+priceText(price)+' Token / 个'
+    el('clock-stock').textContent='持有 '+owned(s,clockItem).toLocaleString()+' 个 · '+priceText(price)+' 游戏 Token / 个'
     clockUse.disabled=!owned(s,clockItem)||Boolean(scope.reason)
     clockUse.textContent='对'+scope.name+'使用 1 个'
     clockUse.title=scope.reason||('影响当前地图全部 '+scope.residents.length+' 位住民')
     clockButton.disabled=Boolean(reason)
-    clockButton.textContent=reason||'购买 · '+priceText(price*n)+' Token'
+    clockButton.textContent=reason||'购买 · '+priceText(price*n)+' 游戏 Token'
   }
   clockQuantity.oninput=()=>{clockFeedback.textContent='';refreshClock(clockScope())}
   clockButton.onclick=()=>{
@@ -177,8 +177,10 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   const search=el('room-search'),usable=el('room-usable')
   search.oninput=render
   usable.onchange=render
-  function showResidentItems(){
-    search.value='';usable.checked=false;filters.room.category.value='全部';filters.room.tier.value='0'
+  function showResidentItems(keepFilters=false){
+    if(!keepFilters){
+      search.value='';usable.checked=false;filters.room.category.value='全部';filters.room.tier.value='0'
+    }
     el('room-feedback').textContent='';el('room-items').scrollTop=0
     refresh()
   }
@@ -222,8 +224,8 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
           button.disabled=Boolean(reason);button.textContent=reason||(item.kind==='clock'?'对'+scope.name+'使用 1 个':'使用 1 份')
         }else{
           const reason=buyReason(s,i,n)
-          count.textContent=priceText(s.prices[i])+' Token / 份'
-          button.disabled=Boolean(reason);button.textContent=reason||'买 '+n+' 份 · '+priceText(s.prices[i]*n)+' Token'
+          count.textContent=priceText(s.prices[i])+' 游戏 Token / 份'
+          button.disabled=Boolean(reason);button.textContent=reason||'买 '+n+' 份 · '+priceText(s.prices[i]*n)+' 游戏 Token'
         }
       })
       if(isBag){

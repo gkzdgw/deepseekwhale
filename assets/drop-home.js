@@ -81,17 +81,52 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     el('room-feed').disabled=w.stage!==0 || stock<1
     el('room-feed').textContent='投喂白饭 · 库存 '+stock
   }
+  const switcher=el('room-residents')
+  let rosterKey
+  function refreshSwitcher(residents){
+    const key=JSON.stringify(residents.map(w=>[w.id,w.name]))
+    if(key!==rosterKey){
+      rosterKey=key
+      switcher.replaceChildren(...residents.map(w=>{
+        const button=document.createElement('button')
+        button.type='button';button.dataset.id=w.id
+        button.append(w.name,document.createElement('small'))
+        return button
+      }))
+    }
+    residents.forEach((w,index)=>{
+      const button=switcher.children[index],day=controls.routine(w),feeling=mood(w)
+      let status='fair',label='一般'
+      if(day.closed || feeling<=20){status='low';label='待照料'}
+      else if(feeling>=65 && day.energy/day.max>=2/3){status='good';label='良好'}
+      if(button.dataset.status!==status){
+        button.dataset.status=status
+        button.lastElementChild.textContent=label
+      }
+      const title=w.name+' · '+label+' · 心情 '+feeling+'/100 · 体力 '+day.energy+'/'+day.max
+      if(button.title!==title)button.title=title
+      const pressed=String(w.id===selected)
+      if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed)
+    })
+  }
+  switcher.onclick=event=>{
+    const button=event.target.closest('button')
+    if(button && button.dataset.id!==selected)open(button.dataset.id)
+  }
   function open(id){
-    const w=getState().whales.find(r=>r.id===id)
+    const residents=currentMap().residents,w=residents.find(r=>r.id===id)
     if(!w)return
-    selected=id;details(w)
-    if(!dialog.open)dialog.showModal()
-    controls.showResidentItems()
+    const switching=dialog.open
+    selected=id;details(w);refreshSwitcher(residents)
+    if(!switching)dialog.showModal()
+    controls.showResidentItems(switching)
+    switcher.querySelector('[aria-pressed=true]')?.scrollIntoView({block:'nearest',inline:'nearest'})
   }
   function refreshDetails(){
     if(!dialog.open)return
-    const w=getState().whales.find(r=>r.id===selected)
-    if(w)details(w);else dialog.close()
+    const residents=currentMap().residents,w=residents.find(r=>r.id===selected)
+    if(!w){dialog.close();return}
+    details(w);refreshSwitcher(residents)
   }
   el('room-play').onclick=()=>{const id=selected;const play=()=>{controls.play(id);refreshDetails()};if(navigator.locks)navigator.locks.request('dsh-whale-school-purchase',play);else play()}
   el('room-feed').onclick=()=>{

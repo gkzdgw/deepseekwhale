@@ -276,7 +276,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     claim.disabled = claiming || Boolean(state.historyGrant)
     el('history-offer').hidden=Boolean(state.historyGrant)
     if (!state.historyGrant && !note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。'
-    el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString('zh-CN') + ' Token 可用'
+    el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString('zh-CN') + ' 游戏 Token 可用'
     el('academy-status').textContent = !w ? '共用库存' : w.diploma ? '毕业成绩 · '+w.diploma.rank+' 级' : ['幼鲸 · 成长中','Q 版小人 · 启蒙','少女 · 研习','少女 · 研习','成女 · 往届补修'][w.stage]
     el('academy-stats').textContent = !w ? '选择一位住民即可查看她能使用的物品。' : subjects.map((name,i) => name+' '+stats[i]+'/100').join('　')
     if (w && !w.form) el('academy-stats').textContent += '　成长日龄 '+ageDays(w)+' 天'
