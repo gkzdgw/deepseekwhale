@@ -49,7 +49,27 @@ function describe(item,state,w,routine){
   }
 }
 
-export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,useItem,unavailable,residentId}){
+// Native radio groups support pointer, Tab and arrow-key selection.
+export function choiceGroup(group,onChange){
+  group.onchange=onChange
+  return {
+    get value(){return group.querySelector('input:checked')?.value ?? ''},
+    set value(value){
+      for(const input of group.querySelectorAll('input'))input.checked=input.value===value
+    },
+    populate(options,selected){
+      const fragment=document.createDocumentFragment()
+      for(const [value,text] of options){
+        const label=document.createElement('label'),input=document.createElement('input'),caption=document.createElement('span')
+        input.type='radio';input.name=group.id;input.value=value;input.checked=value===selected
+        caption.textContent=text;label.append(input,caption);fragment.append(label)
+      }
+      group.replaceChildren(fragment)
+    }
+  }
+}
+
+export function mountMarket(root,{getState,readSharedChanges,save,render,current,routine,availableRice,refreshPantry,useItem,unavailable,residentId,student}){
   const el=id=>root.getElementById(id)
   const shop=el('school-store'),bag=el('school-bag'),quantity=el('store-quantity')
   root.querySelector('.app').append(shop,bag)
@@ -94,18 +114,14 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
     })
   }
   const views=[['store',shop,el('academy-shop')],['bag',bag,el('bag-items')],['room',el('resident-sheet'),el('room-items')]]
-  const grids={}
+  const grids={},filters={}
+  const categoryChoices=categories.map(c=>[c,c==='全部'?'全部分类':c])
+  const tierChoices=[['0','全部档位'],...Array.from({length:9},(_,i)=>[String(i+1),String(i+1)+' 档'])]
   for(const [prefix,dialog] of views){
-    for(const category of categories)el(prefix+'-attribute').add(new Option(category,category))
-    const category=el(prefix+'-attribute')
-    category.options[0].textContent='全部分类'
-    category.onchange=render
-    if(prefix==='room')continue
-    const tier=el(prefix+'-tier')
-    tier.add(new Option('全部档位','0'))
-    for(let n=1;n<=9;n++)tier.add(new Option('第 '+n+' 档',String(n)))
-    tier.onchange=render
-    el(prefix+'-close').onclick=()=>dialog.close()
+    const category=choiceGroup(el(prefix+'-attribute'),refresh),tier=choiceGroup(el(prefix+'-tier'),refresh)
+    category.populate(categoryChoices,'全部');tier.populate(tierChoices,'0')
+    filters[prefix]={category,tier}
+    if(prefix!=='room')el(prefix+'-close').onclick=()=>dialog.close()
   }
   const riceItem=catalog.findIndex(item=>item.kind==='rice')
   const riceQuantity=el('rice-quantity')
@@ -117,15 +133,15 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   quantity.oninput=render
   for(const kiosk of root.querySelectorAll('[data-shop]'))kiosk.onclick=e=>{
     e.stopPropagation();readSharedChanges()
-    el('store-attribute').value='全部';el('store-tier').value='0';el('store-feedback').textContent=''
+    filters.store.category.value='全部';filters.store.tier.value='0';el('store-feedback').textContent=''
     quantity.value='1';shop.showModal();render()
   }
   function openBag(id){
     readSharedChanges()
     if(shop.open)shop.close()
-    el('bag-attribute').value='全部';el('bag-tier').value='0';el('academy-feedback').textContent=''
+    filters.bag.category.value='全部';filters.bag.tier.value='0';el('academy-feedback').textContent=''
     bag.showModal();render()
-    el('academy-student').value=id||'';render();bag.scrollTop=0
+    student.value=id||'';render();bag.scrollTop=0
   }
   el('store-bag').onclick=()=>openBag()
   for(const btn of root.querySelectorAll('[data-bag]'))btn.onclick=()=>openBag()
@@ -133,7 +149,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
   search.oninput=render
   usable.onchange=render
   function showResidentItems(){
-    search.value='';usable.checked=false;el('room-attribute').value='全部'
+    search.value='';usable.checked=false;filters.room.category.value='全部';filters.room.tier.value='0'
     el('room-feedback').textContent='';el('room-items').scrollTop=0
     refresh()
   }
@@ -145,7 +161,7 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       const isBag=prefix!=='store',inline=prefix==='room'
       const w=inline?s.whales.find(whale=>whale.id===residentId()):current()
       const query=inline?search.value.trim().toLowerCase():'',onlyUsable=inline && usable.checked
-      const category=el(prefix+'-attribute').value,tier=inline?0:Number(el(prefix+'-tier').value),n=quantity.valueAsNumber
+      const category=filters[prefix].category.value,tier=Number(filters[prefix].tier.value),n=quantity.valueAsNumber
       const cards=grids[prefix] ||= buildCards(container,prefix)
       const today=w?routine(w):null
       const key=JSON.stringify([category,tier,n,query,onlyUsable,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])

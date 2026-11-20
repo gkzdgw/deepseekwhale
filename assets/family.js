@@ -1,8 +1,5 @@
 /** Adapt the shared dashboard template before it is mounted. */
 export function prepareFamilyPage(page) {
-  const art = page.getElementById('art')
-  art.setAttribute('viewBox','0 0 460 345')
-  art.innerHTML = '<image id="family-heart" href="/__dim-womb/outfits/family-heart.jpg" x="0" y="0" width="460" height="345"/>'
   page.querySelector('.badge').innerHTML = '<i class="school-icon icon-heart" aria-hidden="true"></i>'
   const words = [
     ['次元生殖腔体','家庭档案'],['次元子宫','次元之家'],['DIMENSIONAL BIO-STATUS ARCHIVE','DIMENSIONAL HOME'],

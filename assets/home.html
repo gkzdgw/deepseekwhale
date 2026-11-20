@@ -782,6 +782,48 @@
 #resident-sheet #room-feedback:not(:empty){color:#a3ecda;margin:8px 0 0}#resident-sheet #room-feedback:empty{display:none}
 @media(max-width:840px){#resident-sheet .resident-info{grid-template-columns:minmax(90px,.65fr) minmax(0,1.35fr)}.resident-inventory{grid-column:1/-1}#resident-sheet .portrait-card{min-height:180px}#room-items{max-height:none;overflow:visible;scrollbar-gutter:auto}}
 @media(max-width:480px){#resident-sheet{padding:12px}#resident-sheet .resident-info{grid-template-columns:minmax(62px,.34fr) minmax(0,1fr);gap:10px}#resident-sheet .resident-bars{grid-template-columns:1fr 1fr}#resident-sheet .portrait-card{min-height:110px;align-self:start;padding:2px}#resident-sheet .portrait-card img{min-height:100px;height:auto}.resident-inventory{padding:10px}}
+
+#heart-water{transition:transform 900ms ease-in-out}
+.heart-current{animation:heart-ripple 4.8s linear infinite}
+@keyframes heart-ripple{from{transform:translateX(0)}to{transform:translateX(220px)}}
+@media(prefers-reduced-motion:reduce){.heart-current{animation:none}#heart-water{transition:none}}
+.shop-filters{display:grid;gap:8px;padding:12px 14px;justify-content:stretch;background:#16283d}
+.filter-row{display:grid;grid-template-columns:4em minmax(0,1fr);gap:8px;align-items:baseline;min-width:0}
+.filter-row>b{font-size:12px;color:#a6c5d1}
+.filter-choices{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.filter-choices label{position:relative;cursor:pointer}
+.filter-choices input{position:absolute;width:1px;height:1px;opacity:0;padding:0;margin:0}
+.filter-choices span{display:block;border-radius:6px;border:1px solid #435c71;background:#1b3045;color:#d1e1ea;font:500 12px/1.35 system-ui,sans-serif;padding:4px 8px;overflow-wrap:anywhere}
+.filter-choices label:hover span{border-color:#94c7ce}
+.filter-choices input:checked+span{background:#a8e2dd;border-color:#a8e2dd;color:#10343e;font-weight:700}
+.filter-choices input:focus-visible+span{outline:2px solid #f9daa0;outline-offset:1px}
+#academy-student{max-height:6em;overflow:auto;padding:2px}
+.resident-filters{display:block}.resident-inventory .filter-row{grid-template-columns:2em minmax(0,1fr);margin:6px 0}
+.resident-inventory .filter-choices span{padding:3px 6px}
+@media(max-width:720px),(max-height:640px){.shop-filters{position:static}.filter-row{grid-template-columns:3.4em minmax(0,1fr)}}
+
+#view-academy>.school,#view-aquarium>.home{padding:clamp(8px,1.5vw,20px)}
+.map-banner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px 20px;padding:12px 16px;margin:0 0 12px;border:1px solid #3c566c;border-radius:12px;background:linear-gradient(112deg,#243c52,#1a2941 75%)}
+.map-heading{display:flex;gap:12px;align-items:center}
+.map-heading h2{font:700 clamp(19px,2vw,24px)/1.2 system-ui,sans-serif;color:#f0f7fc;margin:0}
+.map-avatar{display:grid;place-items:center;width:52px;height:52px;overflow:hidden;border:1px solid #536682;border-radius:12px;background:#23364e;box-sizing:border-box}
+.map-avatar .school-icon{width:40px;height:40px;margin:0}.map-avatar img{width:100%;height:100%;object-fit:cover}
+.map-meta{display:block;color:#c2d2de;font-size:12px;margin-top:4px}
+.map-wallet{font:600 14px/1.4 system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#abe7e3}
+.map-toolbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:12px 0 8px}
+.map-toolbar .habitat-nav{margin:0;gap:5px}
+.map-toolbar button,.school .map-toolbar button{font:500 13px/1.4 system-ui,sans-serif;background:#192b40;color:#cfdeea;border:1px solid #436078;border-radius:7px;padding:5px 9px;cursor:pointer}
+.map-toolbar button[aria-pressed=true]{background:#244d5e;color:#dcfffb;border-color:#76acb2}
+.map-toolbar button:focus-visible{outline:2px solid #fedf9c}.map-pager{display:flex;align-items:center;gap:6px;margin-left:auto;color:#c7d7e5;font:500 12px/1.4 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.map-pager button:disabled{opacity:.45;cursor:default}
+#history-offer{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:10px 0}#history-offer[hidden],#meal-feedback:empty{display:none}
+.drop-home{margin-top:12px}
+
+.reset-area{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:24px;border-top:1px solid #685269;padding-top:14px}
+.reset-area h3{margin:0;font-size:15px}.reset-area p{margin:5px 0;color:#c3c9d9;font-size:13px}
+.btn.reset-button{color:#ffdfdf;background:#512d40;border:1px solid #af6f80}
+#reset-sheet{max-width:min(440px,90vw);box-sizing:border-box;padding:22px;border:1px solid #876879;border-radius:14px;color:#f1f2fb;background:#202a40}
+#reset-sheet h2{margin:0;font-size:20px}#reset-sheet p{line-height:1.65;font-size:14px}#reset-sheet::backdrop{background:#081323ab}#reset-error:empty{display:none}
 </style>
 </head>
 <body class="archive-mode">
@@ -865,15 +907,32 @@
       </div>
       <dialog class="scan-sheet" id="scan-sheet" aria-labelledby="scan-title">
         <header class="scan-heading"><h2 id="scan-title">家庭状态</h2><button type="button" class="text-link" id="mother-back" autofocus="">返回总览</button></header>
-        <div class="scan-readings"><section class="projection"><div class="projection-head"><h2>爱心投影</h2><span id="projection-tokens">等待用量读数</span></div><svg class="art" id="art" viewBox="0 0 460 345" role="img" aria-label="爱心投影" data-mood="quiet"><image id="family-heart" href="/__dim-womb/outfits/family-heart.jpg" x="0" y="0" width="460" height="345"></image></svg>      <div class="mods">
+        <div class="scan-readings"><section class="projection"><div class="projection-head"><h2>爱心投影</h2><span id="projection-tokens">等待用量读数</span></div><svg class="art" id="art" viewBox="0 0 1448 1086" role="img" aria-label="爱心投影">
+          <defs>
+            <clipPath id="heart-cavity"><path d="M724 242 C618 125 484 128 379 197 C263 268 214 393 248 511 C297 664 496 796 724 872 C949 789 1150 659 1201 510 C1239 378 1175 265 1070 197 C955 123 826 133 724 242 Z"/></clipPath>
+            <linearGradient id="heart-water-color" x1="0%" y1="0%" x2="0%" y2="100%" gradientUnits="objectBoundingBox">
+              <stop stop-color="#88f8fa" stop-opacity=".63"/><stop offset=".12" stop-color="#32cde6" stop-opacity=".46"/><stop offset=".7" stop-color="#496dce" stop-opacity=".34"/>
+            </linearGradient>
+            <path id="heart-wave-shape" d="M-240 0 q55 -14 110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0"/>
+          </defs>
+          <image id="family-heart" href="/__dim-womb/outfits/family-heart.jpg" width="1448" height="1086"/>
+          <g clip-path="url(#heart-cavity)">
+            <rect id="heart-shade" width="1448" height="1086" fill="#111836" opacity=".6"/>
+            <g id="heart-water" style="transform:translateY(890px)">
+              <g class="heart-current">
+                <path fill="url(#heart-water-color)" d="M-240 0 q55 -14 110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 t110 0 v900 h-1980Z"/>
+                <use href="#heart-wave-shape" fill="none" stroke="#c3ffff" stroke-width="5" opacity=".9"/>
+              </g>
+            </g>
+          </g>
+        </svg>      <div class="mods">
         <div class="mod" id="mod-link-box" data-tip="能量导管 = 有没有接上 DSH 的活动来源。
 已接入 · 请求记录：读到本机 token 请求明细（只读）。
 未接入：退回只按时间累积。"><b>能量导管</b><small id="mod-link">未接入</small></div>
         <div class="mod" id="mod-core-box" data-tip="次元核心 = 亲密度。
 每次新互动 +1 点，每只幼鲸出生 +5 点，最高 100。连续 3 天无互动才会缓慢回落，最多回落历史最高值的 10%。
 它决定家庭温度，也给想念值垫底。"><b>次元核心</b><small id="mod-core">亲密 0%</small></div>
-        <div class="mod" id="mod-store-box" data-tip="储存层 = 储存量 ÷ 上限。
-到 100% 就不再涨；想要更大的数字，去「设置 → 储存上限」改。"><b>储存层</b><small id="mod-store">26%</small></div>
+        <div class="mod" id="mod-store-box" data-tip="每 2 格升高 1%，200 格满水。超过 200 格时保持满水，消耗到 200 格以下时水位下降。"><b>核心水位</b><small id="mod-store">—</small></div>
         <div class="mod" id="mod-shape-box" data-tip="爱心轮廓 = 当前心情。
 &lt;3 分钟黏着 · &lt;45 分钟安定 · &lt;4 小时等待 · &lt;12 小时寂寞 · 更久冷清。
 心情也决定顶部那句话和核心光晕的呼吸速度。"><b>爱心轮廓</b><small id="mod-shape">离线</small></div>
@@ -958,26 +1017,18 @@
     <!-- 水下的家 -->
     <main class="card stage hidden" id="view-aquarium">
       <div class="home">
-        <div class="home-head">
-          <div class="mascot" id="mascot" data-tip="母亲在这里照看小鲸鱼。"><img id="keeper-image" alt="看护水族馆的母亲"></div>
-          <div class="home-title">
-            <h2>小鲸水族馆</h2>
-            <p>点水面撒饭，或点一只小鲸鱼单独喂。从幼鲸到小女孩、少女，再到成年。每只幼鲸吃完第 30 份白饭就会进入水下乐园。点击住民可以查看档案。</p>
-          </div>
-          <div class="home-stats">
-            <div><b id="whale-count">0</b><span>只小鲸鱼</span></div>
-            <div><b id="rice-n">0</b><span>白饭</span></div>
-            <div><b id="pool-n">0</b><span>token 池</span></div>
-          </div>
-        </div>
-
+        <header class="map-banner">
+          <div class="map-heading"><div class="map-avatar" id="mascot"><img id="keeper-image" alt="照看幼鲸的母亲"></div>
+          <div><h2>小鲸水族馆</h2><span class="map-meta">幼鲸 <b id="whale-count">0</b> 只 · 白饭 <b id="rice-n">0</b> 份</span></div></div>
+          <span class="map-wallet" id="pool-n"></span>
+        </header>
         <div class="home-bar">
            <label class="rice-quantity">份数 <input id="rice-quantity" type="number" min="1" max="9999" step="1" value="1"></label> <button class="btn" id="buy-rice" type="button"><img src="/__dim-womb/outfits/nursery-rice.png" alt=""> 购买白饭</button> <button class="btn" id="scatter-btn" type="button">投喂一份</button>
           
           <span class="hint" id="feed-hint"></span>
         </div>
         <p id="meal-feedback" role="status" aria-live="polite"></p>
-        <div class="habitat-nav"><strong>幼鲸水族馆</strong><button data-travel="1">水下乐园</button><button data-travel="2">少女寝室</button><button data-travel="3">海港商街</button><button id="tank-prev" aria-label="上一组幼鲸">‹</button><span id="tank-page"></span><button id="tank-next" aria-label="下一组幼鲸">›</button></div><div class="tank" id="tank"><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div>
+        <div class="map-toolbar"><div class="habitat-nav" id="tank-tabs" role="group" aria-label="住民地图"></div><div class="map-pager"><button type="button" id="tank-prev" aria-label="上一组幼鲸">‹</button><span id="tank-page"></span><button type="button" id="tank-next" aria-label="下一组幼鲸">›</button></div></div><div class="tank" id="tank"><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div>
           <div class="water"></div>
           <div class="bubbles" id="bubbles"></div>
           <div class="layer" id="rice-layer"></div>
@@ -1006,30 +1057,29 @@
     </main>
 
     <main class="card stage hidden" id="view-academy">
-      <div class="school"><header><h2><i class="school-icon icon-school"></i> 成长学堂</h2><span id="academy-wallet"></span></header>
-      <p><button class="btn" id="history-credit" type="button">领取历史账单奖励</button> <span class="hint" id="history-note" role="status"></span></p>
-<section class="drop-home"><header><h3>水滴之家</h3><span><button type="button" id="room-prev" aria-label="上一组住民">‹</button> <span id="room-page"></span> <button type="button" id="room-next" aria-label="下一组住民">›</button></span></header>
-      <div class="habitat-nav" id="room-tabs"></div><div class="map-wrap"><div id="room-floor"></div><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div></div><p class="hint" id="room-hint"></p>
+      <div class="school"><header class="map-banner"><div class="map-heading"><span class="map-avatar"><i class="school-icon icon-school" aria-hidden="true"></i></span><div><h2>成长学堂</h2><span class="map-meta">水滴之家</span></div></div><span class="map-wallet" id="academy-wallet"></span></header>
+      <p id="history-offer" hidden><button class="btn" id="history-credit" type="button">领取历史账单奖励</button> <span class="hint" id="history-note" role="status"></span></p>
+<section class="drop-home" aria-label="水滴之家"><div class="map-toolbar"><div class="habitat-nav" id="room-tabs" role="group" aria-label="住民地图"></div><div class="map-pager"><button type="button" id="room-prev" aria-label="上一组住民">‹</button><span id="room-page"></span><button type="button" id="room-next" aria-label="下一组住民">›</button></div></div><div class="map-wrap"><div id="room-floor"></div><div class="map-tools"><button type="button" class="map-kiosk" data-shop="" aria-haspopup="dialog" aria-controls="school-store"><img src="/__dim-womb/outfits/book-kiosk.png" alt=""><span>学堂商店</span></button><button type="button" class="map-kiosk map-backpack" data-bag aria-haspopup="dialog" aria-controls="school-bag"><img src="/__dim-womb/outfits/family-backpack.png" alt=""><span>家庭背包</span></button></div></div><p class="hint" id="room-hint"></p>
       <dialog id="resident-sheet" aria-labelledby="room-name"><header class="resident-heading"><strong>住民档案</strong><button type="button" class="btn ghost" id="room-close">关闭</button></header><div class="resident-info"><figure class="portrait-card"><img id="room-portrait" alt=""></figure><div><h3 id="room-name"></h3><p id="room-style"></p><p id="room-interests"></p><div id="room-scores" class="resident-bars"></div><div id="nursery-progress" hidden><label for="nursery-bar">幼鲸白饭 <b id="nursery-count"></b></label><progress id="nursery-bar" max="30" value="0"></progress></div><div class="resident-bars"><label data-group="social">心情 <span id="room-mood-value"></span><progress id="room-mood" aria-label="心情" max="100"></progress></label><label data-group="practice">体力 <span id="room-energy-value"></span><progress id="room-energy" aria-label="体力" max="6"></progress></label></div><div id="room-track"></div><p id="room-age"></p><p id="room-next-stage"></p><p id="room-record"></p><p id="room-visit"></p><button type="button" class="btn" id="room-play"></button><button type="button" class="btn" id="room-feed"></button> </div>
           <section class="resident-inventory" aria-labelledby="room-inventory-title">
             <header><img src="/__dim-womb/outfits/family-backpack.png" width="38" height="38" alt=""><h3 id="room-inventory-title">家庭背包</h3><span id="room-summary"></span></header>
-            <div class="resident-filters"><input type="search" id="room-search" placeholder="搜索物品" aria-label="搜索背包物品"><select id="room-attribute" aria-label="物品分类"></select></div>
+            <div class="resident-filters"><input type="search" id="room-search" placeholder="搜索物品" aria-label="搜索背包物品"></div><div class="filter-row"><b>分类</b><div id="room-attribute" class="filter-choices" role="radiogroup" aria-label="分类"></div></div><div class="filter-row"><b>档位</b><div id="room-tier" class="filter-choices" role="radiogroup" aria-label="档位"></div></div>
             <label class="resident-available"><input id="room-usable" type="checkbox"> 仅显示当前可用</label>
             <div id="room-items"></div><p id="room-empty" hidden></p><p id="room-feedback" role="status" aria-live="polite"></p>
           </section></div></dialog></section><details class="route-guide"><summary>培养路线图鉴</summary><p>三项数字依次为学识、艺术、体能的建议吸收比例，加餐份数为人形阶段的料理使用参考。单科成绩满分后也可继续研习，调整路线。</p><ul id="academy-routes"></ul></details>      <h3><i class="school-icon icon-diploma"></i> 成年成绩榜</h3><ol id="academy-board"></ol>
       <p class="hint">三项基础占 70%，六项专长占 30%，合计折算为 300 分。总分 240 起为 S，180 起为 A，100 起为 B，其余为 C。同分并列。</p><dialog id="school-store" aria-labelledby="store-title">
         <header class="store-head"><div><h2 id="store-title">学堂商店</h2><b id="store-wallet"></b></div><div><button class="btn" id="store-bag" type="button">查看背包</button> <button class="btn ghost" id="store-close" type="button">关闭</button></div></header>
-        <div class="shop-filters"><label>分类 <select id="store-attribute"></select></label><label>档位 <select id="store-tier"></select></label><label>购买数量 <input type="number" id="store-quantity" min="1" max="9999" step="1" value="1"></label></div>
+        <div class="shop-filters"><div class="filter-row"><b>分类</b><div id="store-attribute" class="filter-choices" role="radiogroup" aria-label="分类"></div></div><div class="filter-row"><b>档位</b><div id="store-tier" class="filter-choices" role="radiogroup" aria-label="档位"></div></div><label>购买数量 <input type="number" id="store-quantity" min="1" max="9999" step="1" value="1"></label></div>
         <p id="store-feedback" role="status"></p><div id="academy-shop"></div><p id="store-empty" hidden>当前筛选没有商品。</p></dialog>
       <dialog id="school-bag" aria-labelledby="bag-title">
         <header class="store-head"><div><h2 id="bag-title">家庭背包</h2><b id="bag-summary"></b></div><button class="btn ghost" id="bag-close" type="button">关闭</button></header>
-        <div class="shop-filters"><label>使用对象 <select id="academy-student"></select></label><label>分类 <select id="bag-attribute"></select></label><label>档位 <select id="bag-tier"></select></label></div>
+        <div class="shop-filters"><div class="filter-row"><b>使用对象</b><div id="academy-student" class="filter-choices" role="radiogroup" aria-label="使用对象"></div></div><div class="filter-row"><b>分类</b><div id="bag-attribute" class="filter-choices" role="radiogroup" aria-label="分类"></div></div><div class="filter-row"><b>档位</b><div id="bag-tier" class="filter-choices" role="radiogroup" aria-label="档位"></div></div></div>
         <div id="bag-resident" hidden><h3 id="academy-status"></h3><div id="academy-stats"></div><p id="academy-day"></p><p id="academy-likes" class="hint"></p></div>
         <p id="academy-feedback" role="status"></p><div id="bag-items"></div><p id="bag-empty"></p><button type="button" class="btn" id="academy-graduate" hidden>完成补修并评级</button></dialog></div>
     </main>
     <main class="card stage hidden" id="view-prices"><div class="school"><h2>物价设置</h2>
       <p>调整价格会影响养成节奏。尤其是时光沙漏，降价后会更快成年，留给培养能力的时间也会变短。</p>
-      <p class="hint">定价基准为 1 万游戏 Token，输入框填写完整 Token 数。已购买的物品保留在家庭背包中。</p><div id="price-fields"></div><div class="field"><label for="hourglass-days">每个时光沙漏推进的成长天数</label><input id="hourglass-days" type="number" min="1" max="3650" step="1" required=""><span class="hint">默认 1 天，仅作用于使用沙漏的鲸鱼。</span></div>
+      <p class="hint">定价基准为 1 万游戏 Token，输入框填写完整 Token 数。已购买的物品保留在家庭背包中。</p><div id="price-fields"><details open><summary>生活补给</summary><div class="price-group" id="price-group-0"></div><div class="field"><label for="hourglass-days">每个时光沙漏推进的成长天数</label><input id="hourglass-days" type="number" min="1" max="3650" step="1" required=""><span class="hint">默认 1 天，仅作用于使用沙漏的鲸鱼。</span></div></details></div>
       <button class="btn" id="price-save" type="button">保存物价</button> <button class="btn ghost" id="price-default" type="button">填入默认价</button><p id="price-status" role="status"></p></div></main>
     <!-- 设置视图 -->
     <main class="card stage hidden" id="view-settings">
@@ -1086,11 +1136,20 @@
           </div>
           <div class="row">
             <button class="btn" id="cfg-save" type="button" data-tip="保存并立刻生效，日志里会记一条「设置已更新」。">保存设置</button>
-            <button class="btn ghost" id="cfg-reset" type="button" data-tip="清空本地档案：储存、亲密、想念、事件全部回到初始值，会先弹确认。">重置档案</button>
+
           </div>
           <div class="hint" id="growth-message" role="status"></div><p class="foot">
             储存上限和孕育门槛保存到本机 DSH 配置文件，养成进度保存在当前浏览器。
           </p>
+          <section class="reset-area"><div><h3>重新开始</h3><p>清空这个浏览器的家庭档案，并恢复本机的游戏设置。</p></div><button class="btn reset-button" id="cfg-reset" type="button">重置次元之家</button></section>
+          <dialog id="reset-sheet" role="alertdialog" aria-labelledby="reset-title" aria-describedby="reset-warning">
+            <h2 id="reset-title">从零开始？</h2>
+            <p id="reset-warning">游戏 Token、爱情值和亲密度将归零。所有住民、背包、成长记录、孕育进度及奖励领取记录都会清空，物价和养成设置将恢复默认。此操作无法撤销。</p>
+            <p>DSH 聊天和原始账单会保留。重新开始后，只会自动结算新增用量。</p>
+            <div class="row"><button type="button" class="btn ghost" id="reset-cancel" autofocus>取消</button><button type="button" class="btn reset-button" id="reset-confirm">确认清空并重新开始</button></div>
+            <p id="reset-error" role="status"></p>
+          </dialog>
+
         </div>
       </div>
     </main>
@@ -1100,10 +1159,10 @@
         <h2>次元之家使用说明</h2>
         <h3>迎接第一只小鲸鱼</h3><p>从标题栏切换到「次元之家」，可以在总览继续聊天。使用 DSH 积攒爱情值，达到门槛后点击「开始孕育」。默认 24 小时后出生，离线也计时。「设置」可调整下一胎的时长。</p>
         <h3>水族馆与家庭背包</h3><p>在水族馆填入份数后点「购买白饭」，或在地图上的学堂商店批量购买。选「投喂一份」、点水面撒饭，或打开幼鲸档案定向投喂。每只幼鲸有独立的进度，实际吃完第 30 份立即长成 Q 版鲸鱼娘，搬进水下乐园。</p>
-        <p>点击地图右上角的鲸鱼背包即可查看库存。打开住民档案，右侧背包会显示已有物品。可按名称、分类或当前可用状态筛选，点击「使用 1 份」即可给这位住民使用。人形阶段的心情料理和体力料理各有九档，每个成长日各可吃一份。</p>
+        <p>点击地图右上角的鲸鱼背包即可查看库存。打开住民档案，右侧背包会显示已有物品。直接点选顶栏的分类和档位，也可以组合名称搜索与「仅显示当前可用」，点击「使用 1 份」即可给这位住民使用。人形阶段的心情料理和体力料理各有九档，每个成长日各可吃一份。</p>
         <h3>上课、放置与毕业</h3><p>Q 版阶段默认 20 个成长日，少女两个学期各 30 个成长日。自然经过一天增加一个成长日，耗尽体力完成课程也能推进一天，时光沙漏默认额外推进一天。出生倾向影响九项属性的学习效果，可在设置中显示偏好。</p>
         <p>放置养成默认开启，进入人形后会按性格缓慢学习。心情过低时会休息。成年评级从 C 到 S，S 最高，成女搬去海港商街，每七天回家探望一天。</p>
-        <h3>游戏 Token 与设置</h3><p>成长学堂可按本地历史账单汇总领取一次游戏 Token，按 10 元折合 1 亿估算。物价设置可调整白饭、教材、料理的售价和沙漏天数，点「保存」生效。</p>
+        <h3>游戏 Token 与设置</h3><p>成长学堂可按本地历史账单汇总领取一次游戏 Token，领取后入口收起。开启用量联动后，新产生的账本 Token 每 3 秒同步至可用余额。物价设置可调整白饭、教材、料理的售价和沙漏天数，点「保存」生效。</p>
         <h3>制作人员</h3><p>制作：lightdream-gkdzgw · 在 GPT 协助下完成。</p>
       </div></main>
 

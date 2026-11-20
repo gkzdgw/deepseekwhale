@@ -23,10 +23,22 @@ export function mountDropHome(root,getState,itemNames,controls){
     place=to;page=0;render()
   }
   const location=w=>w.stage===4&&visit(w).visiting?4:zone(w)
-  const tabs=habitats.map((name,i)=>{
-    const button=document.createElement('button');button.type='button'
-    button.onclick=()=>travel(i);el('room-tabs').append(button);return button
-  })
+  const maps=['tank-tabs','room-tabs'].map((id,index)=>habitats.map((name,i)=>{
+    const button=document.createElement('button');button.type='button';button.textContent=name
+    if(!index && i)button.dataset.travel=String(i)
+    else button.onclick=()=>travel(i)
+    el(id).append(button);return button
+  }))
+  function refreshTabs(tank,all){
+    const counts=[0,0,0,0,0]
+    for(const whale of all)counts[location(whale)]++
+    maps[tank?0:1].forEach((button,i)=>{
+      const label=habitats[i]+' · '+counts[i],pressed=String(i===(tank?0:place))
+      if(button.textContent!==label)button.textContent=label
+      if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed)
+    })
+    return counts
+  }
   const barsGroup=name=>['学识','艺术','体能'].includes(name)?'base':['感受性','气质','魅力'].includes(name)?'social':'practice'
   const bars=['学识','艺术','体能',...talentNames].map(name=>{
     const label=document.createElement('label'),value=document.createElement('span'),meter=document.createElement('progress')
@@ -92,11 +104,10 @@ export function mountDropHome(root,getState,itemNames,controls){
     const pages=Math.max(1,Math.ceil(roster.length/4))
     page=Math.min(pages-1,Math.max(0,page))
     const group=roster.slice(page*4,page*4+4)
-    const counts=[0,0,0,0,0];all.forEach(w=>counts[location(w)]++)
+    const counts=refreshTabs(false,all)
     const key=JSON.stringify([place,page,counts,group.map(w=>[w.id,w.name,residentPortrait(w)])])
     if(key===lastKey)return
     lastKey=key
-    tabs.forEach((button,i)=>{button.textContent=habitats[i]+' · '+counts[i];button.setAttribute('aria-pressed',String(i===place))})
     floor.style.backgroundImage="url('/__dim-womb/outfits/"+backgrounds[place]+"')"
     el('room-page').textContent=(page+1)+' / '+pages
     el('room-prev').disabled=!page;el('room-next').disabled=page===pages-1
@@ -109,5 +120,5 @@ export function mountDropHome(root,getState,itemNames,controls){
       b.onclick=()=>open(w.id);return b
     }))
   }
-  return {render,travel,open,refreshDetails,selectedId:()=>selected}
+  return {render,travel,open,refreshDetails,refreshTankTabs:()=>refreshTabs(true,getState().whales),selectedId:()=>selected}
 }

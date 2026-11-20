@@ -158,6 +158,9 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     historyGrant: null,
     economyVersion:0,
     lastTokens: null,
+    meterCursor: null,
+    meterAwaitingBaseline: false,
+    archiveId: null,
     firstMealGranted: false,
     riceFed: 0,
     riceStock: 0,
@@ -183,7 +186,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var raw = rawV2 || rawV1
     if (raw) { try { parsed = JSON.parse(raw) || {} } catch (e) { parsed = {} } }
     var out = {}
-    for (var k in DEFAULTS) out[k] = parsed[k] === undefined ? DEFAULTS[k] : parsed[k]
+    for (var k in DEFAULTS) out[k] = parsed[k] === undefined ? structuredClone(DEFAULTS[k]) : parsed[k]
     if (out.growth?.length === 3 && out.growth.some((r,i) => r?.days !== [3,14,35][i])) {
       const old = out.growth
       const last = Math.max(6, old[2].days-old[1].days)
@@ -208,7 +211,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     }
     if (typeof out.name !== 'string' || !out.name) out.name = DEFAULTS.name
     out.capacity = clamp(Number(out.capacity) || 200, 10, 9999)
-    if (reserve) Object.assign(out, {capacity:reserve.capacity, hatchAt:reserve.hatchAt})
+    if (reserve && !fromSharedArchive) Object.assign(out, {capacity:reserve.capacity, hatchAt:reserve.hatchAt})
     if (!fromSharedArchive && validGestationMinutes(reserve?.gestationMinutes)) out.gestationMinutes=reserve.gestationMinutes
     if (!validGestationMinutes(out.gestationMinutes)) out.gestationMinutes=defaultGestationMinutes
     if (!(out.hatchAt >= 1 && out.hatchAt <= out.capacity)) out.hatchAt = Math.round(out.capacity * 9) / 10
@@ -336,15 +339,37 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     return Math.max(0, Date.now() - lastTouchAt())
   }
 
+  function creditUsage(meter){
+    if(!meter?.days || !meter.baseline?.days)return
+    const opening=state.meterAwaitingBaseline ? {since:meter.today,days:{[meter.today]:meter.days[meter.today]||0}} : meter.baseline
+    const cursor=state.meterCursor || {since:opening.since,days:{...opening.days}}
+    state.meterAwaitingBaseline=false
+    let changed=!state.meterCursor,gain=0
+    for(const [day,total] of Object.entries(meter.days)){
+      if(day<cursor.since || day>meter.today || !Number.isSafeInteger(total) || total<0)continue
+      const paid=cursor.days[day]||0
+      if(total<=paid)continue
+      gain+=total-paid
+      cursor.days[day]=total
+      changed=true
+    }
+    if(changed){
+      state.meterCursor=cursor
+      if(state.bound)state.tokenPool=clamp(state.tokenPool+gain,0,Number.MAX_SAFE_INTEGER)
+      save()
+    }
+  }
+
   function applyActivity(data) {
     readSharedChanges()
     var previous = activity
     activity = data
     activityKnown = true
+    creditUsage(data?.meter)
     if (!data || !data.connected) { render(); return }
     if (!state.bound) { render(); return }
 
-    if (data.source === 'token-monitor' && Number.isFinite(data.tokens24h)) {
+    if (!state.meterCursor && data.source === 'token-monitor' && Number.isFinite(data.tokens24h)) {
       var total = Math.max(0, data.tokens24h)
       if (total !== state.lastTokens) {
         if (state.lastTokens !== null) state.tokenPool = clamp(state.tokenPool + Math.max(0, total - state.lastTokens), 0, Number.MAX_SAFE_INTEGER)
@@ -548,21 +573,27 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var signal = Math.min(1, Math.log1p(tokenCount) / Math.log1p(1000000))
     art.style.setProperty('--signal-strength', (0.28 + 0.72 * signal).toFixed(2))
     art.style.setProperty('--signal-period', (7 - 5 * signal).toFixed(2) + 's')
-    const heart=$('family-heart')
-    if (heart) heart.style.filter = 'saturate('+(0.65+0.55*clamp(ratio,0,1))+') brightness('+(0.78+0.25*clamp(ratio,0,1))+')'
-    else $('projection-fluid')?.setAttribute('y', (253 - 142 * clamp(ratio, 0, 1)).toFixed(2))
+    const water = $('heart-water')
+    const coreCapacity = 200
+    const coreRatio = clamp(state.storage / coreCapacity, 0, 1)
+    const corePercent = Math.floor(coreRatio * 1000) / 10
+    if (water) {
+      // Keep a small visible meniscus inside the two lobes at full capacity.
+      water.style.transform = 'translateY(' + (890 - 710 * coreRatio).toFixed(2) + 'px)'
+      $('heart-shade').setAttribute('opacity', (0.60 - 0.44 * coreRatio).toFixed(3))
+    } else $('projection-fluid')?.setAttribute('y', (253 - 142 * clamp(ratio, 0, 1)).toFixed(2))
     var usage = hasTokens ? '近 24h 输出 · ' + fmtToken(tokenCount) : state.bound ? '等待 token 读数' : '用量联动已关闭'
     $('projection-tokens').textContent = usage
-    art.setAttribute('aria-label', (family ? '爱心，爱情值 ' : '子宫正面投影，储存 ') + pct + '%，' + usage)
+    art.setAttribute('aria-label', (water ? '爱心投影，核心水位 ' + corePercent : '子宫正面投影，储存 ' + pct) + '%，' + usage)
     $('mod-link').textContent = activity.connected
       ? (activity.source === 'token-monitor' ? '已接入 · 请求记录' : '已接入 · 会话文件')
       : '未接入'
     $('mod-core').textContent = '亲密 ' + bondPercent() + '%'
-    $('mod-store').textContent = pct + '%'
+    $('mod-store').textContent = water ? corePercent + '% · 满格 200' : pct + '%'
     $('mod-shape').textContent = text.word
     $('mod-link-box').classList.toggle('live', activity.connected)
     $('mod-core-box').classList.toggle('live', bond > 0.2)
-    $('mod-store-box').classList.toggle('live', pct > 0)
+    $('mod-store-box').classList.toggle('live', water ? coreRatio > 0 : pct > 0)
     $('mod-shape-box').classList.toggle('live', mood === 'clingy')
 
     // 参数
@@ -799,16 +830,39 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     render()
   })
 
-  $('cfg-reset').addEventListener('click', function () {
-    if (!window.confirm(family ? '重置次元之家的养成档案？' : '重置档案？储存量、亲密度、欲望值和事件日志都会回到初始值。')) return
-    try { localStorage.removeItem(KEY); localStorage.removeItem(OLD_KEY) } catch (e) { /* ignore */ }
-    state = load()
-    seenAt = 0
-    mood = 'quiet'
-    state.updatedAt = Date.now()
-    save()
-    render()
-  })
+  const resetSheet=$('reset-sheet'),resetConfirm=$('reset-confirm'),resetCancel=$('reset-cancel')
+  $('cfg-reset').onclick=()=>{$('reset-error').textContent='';resetSheet.showModal();resetCancel.focus()}
+  resetCancel.onclick=()=>resetSheet.close()
+  resetSheet.addEventListener('cancel',e=>{if(resetConfirm.disabled)e.preventDefault()})
+  resetConfirm.onclick=async()=>{
+    if(resetConfirm.disabled)return
+    resetConfirm.disabled=true;resetCancel.disabled=true
+    const reset=async()=>{
+      const defaults={capacity:DEFAULTS.capacity,hatchAt:180,gestationMinutes:defaultGestationMinutes}
+      const res=await fetch('/__dim-womb/api/activity',{cache:'no-store',signal})
+      if(!res.ok)throw Error('activity')
+      const reading=await res.json()
+      const config=await fetch(settingsUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults),signal})
+      if(!config.ok)throw Error('settings')
+      const now=Date.now(),meter=reading.meter
+      const fresh={...structuredClone(DEFAULTS),...defaults,archiveId:crypto.randomUUID(),storage:0,
+        economyVersion:3,updatedAt:now,lastSatisfiedAt:now,seenAt:now,
+        meterAwaitingBaseline:!meter,meterCursor:meter?{since:meter.today,days:{[meter.today]:meter.days[meter.today]||0}}:null,
+        lastTokens:reading.source==='token-monitor'?reading.tokens24h:null}
+      const snapshot=JSON.stringify(fresh)
+      localStorage.setItem(KEY,snapshot)
+      reserve=defaults;state=load(true);savedSnapshot=snapshot;seenAt=now;lastTick=now;mood='quiet'
+      localStorage.removeItem(OLD_KEY)
+      activity=reading
+      resetSheet.close();fillForm();render()
+      $('growth-message').textContent='已重置次元之家。游戏余额为 0，之后按新增用量结算。'
+    }
+    try {
+      if(navigator.locks)await navigator.locks.request('dsh-whale-school-purchase',reset)
+      else await reset()
+    } catch {$('reset-error').textContent='重置未完成。请确认 DSH 已连接，且浏览器允许保存本地数据，再试一次。'}
+    finally {resetConfirm.disabled=false;resetCancel.disabled=false}
+  }
 
   $('ev-clear').addEventListener('click', function () {
     state.events = []
@@ -1250,7 +1304,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var stock = availableRice()
     $('scatter-btn').disabled = !stock || !state.whales.some(w=>w.stage===0)
     var poolN = root.getElementById('pool-n')
-    if (poolN) poolN.textContent = pool >= 1000 ? (pool / 1000).toFixed(1) + 'k' : String(pool)
+    if (poolN) poolN.textContent = Math.floor(pool).toLocaleString('zh-CN') + ' Token 可用'
     var riceN = root.getElementById('rice-n')
     if (riceN) riceN.textContent = String(stock)
     var count = root.getElementById('whale-count')
@@ -1272,6 +1326,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     var tank = tankEl()
     if (!tank || !scene.running && $('view-aquarium').classList.contains('hidden')) return
     syncWhaleSprites()
+    academy.home.refreshTankTabs()
     updateHomeHud()
   }
 
@@ -1314,15 +1369,21 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
     render()
   }, 1000)
 
-  function poll() {
-    var url = '/__dim-womb/api/activity'
-    if (typeof fetch !== 'function') return
-    fetch(url, { cache: 'no-store', credentials: 'same-origin', signal })
-      .then(function (res) { return res.ok ? res.json() : null })
-      .then(function (data) { if (data && !signal?.aborted) applyActivity(data) })
-      .catch(function () { activityKnown = true; /* 拿不到就用现有状态 */ })
+  let polling=false
+  async function poll() {
+    if(polling || signal?.aborted)return
+    polling=true
+    const archive=state.archiveId
+    try {
+      const res=await fetch('/__dim-womb/api/activity',{cache:'no-store',credentials:'same-origin',signal})
+      if(!res.ok)return
+      const data=await res.json()
+      const apply=()=>{readSharedChanges();if(data && !signal?.aborted && archive===state.archiveId)applyActivity(data)}
+      if(navigator.locks)await navigator.locks.request('dsh-whale-school-purchase',apply)
+      else apply()
+    } catch {activityKnown=true}
+    finally {polling=false}
   }
-
   var tankBox = root.getElementById('tank')
   tankBox.style.cursor = 'pointer'
   tankBox.addEventListener('click', function (event) {
@@ -1423,7 +1484,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
   wireTips()
   render()
   poll()
-  const pollTimer = setInterval(poll, 8000)
+  const pollTimer = setInterval(poll, 3000)
   signal?.addEventListener('abort', () => {
     clearInterval(tickTimer)
     clearInterval(pollTimer)

@@ -1,7 +1,7 @@
 import {preferenceText,mood,resting,energyLimit,changeMood,lessonFeeling,sessionEnergy,learningGain,rounded} from './wellbeing.js'
 import {catalog,attributes,defaultPrices} from './catalog.js'
 export {defaultPrices} from './catalog.js'
-import {mountMarket} from './market.js'
+import {mountMarket,choiceGroup} from './market.js'
 import {talents} from './talents.js'
 import {routeIndex,paths} from './growth-paths.js'
 import {mountDropHome,ageDays} from './drop-home.js'
@@ -43,7 +43,7 @@ export function grade(whale) {
 }
 export function mountAcademy(root, getState, save, readSharedChanges, updateStage, controls) {
   const el = id => root.getElementById(id)
-  const select = el('academy-student')
+  const student = choiceGroup(el('academy-student'), () => {el('academy-feedback').textContent='';render()})
 
   controls.play=id=>{
     readSharedChanges()
@@ -63,20 +63,20 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     guide.append(row)
   }
   let rosterKey, boardKey
+  const priceGroups=[el('price-group-0')]
+  const tiers=Math.max(...catalog.map(item=>item.tier||0))
+  for(let tier=1;tier<=tiers;tier++){
+    const details=document.createElement('details'),summary=document.createElement('summary'),group=document.createElement('div')
+    summary.textContent='第 '+tier+' 档'
+    group.id='price-group-'+tier;group.className='price-group'
+    priceGroups.push(group);details.append(summary,group);el('price-fields').append(details)
+  }
   const prices = priceNames.map((name,i) => {
     const label=document.createElement('label'), input=document.createElement('input')
     input.type='number';input.min='1';input.max='10000000000';input.step='1'
     input.id='shop-price-'+i
     label.append(name,input)
-    const key=catalog[i].tier||0
-    let section=el('price-group-'+key)
-    if(!section){
-      const details=document.createElement('details'),summary=document.createElement('summary')
-      summary.textContent=key?'第 '+key+' 档':'生活补给';details.open=key===0
-      section=document.createElement('div');section.id='price-group-'+key;section.className='price-group'
-      details.append(summary,section);el('price-fields').append(details)
-    }
-    section.append(label)
+    priceGroups[catalog[i].tier||0].append(label)
     return input
   })
   function fillPrices() {
@@ -95,12 +95,13 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     el('price-status').textContent='物价已保存。'
   }
   const market=mountMarket(root,{getState,readSharedChanges,save,render,current,routine:schedule,
-    availableRice:controls.rice,refreshPantry:controls.refreshPantry,useItem,unavailable,residentId:home.selectedId})
+    availableRice:controls.rice,refreshPantry:controls.refreshPantry,useItem,unavailable,residentId:home.selectedId,student})
   controls.showResidentItems=market.showResidentItems
   const claim = el('history-credit'), note = el('history-note')
   let claiming = false
   claim.onclick = async () => {
     if (claiming) return
+    const archive=getState().archiveId
     claiming = true
     claim.disabled = true
     try {
@@ -111,7 +112,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
       const apply = () => {
         readSharedChanges()
         const state=getState()
-        if (state.historyGrant) return
+        if (state.historyGrant || state.archiveId!==archive) return
         state.historyGrant={cents,tokens:grantForCents(cents)}
         state.tokenPool=Math.min(Number.MAX_SAFE_INTEGER,state.tokenPool+state.historyGrant.tokens)
         save()
@@ -121,7 +122,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     } catch {note.textContent='未找到可用的人民币账单汇总，可在费用统计更新后再试。'}
     finally {claiming=false;render()}
   }
-  function current() { return getState().whales.find(w => w.id === select.value) }
+  function current() { return getState().whales.find(w => w.id === student.value) }
   function unavailable(i,w){
     if(!w)return '请选择使用对象'
     const item=catalog[i]
@@ -203,17 +204,16 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     const roster = state.whales
     const key = JSON.stringify(roster.map(w => [w.id,w.name]))
     if (key !== rosterKey) {
-      const last = select.value
-      select.replaceChildren(new Option('选择住民',''),...roster.map(w => new Option(w.name,w.id)))
-      if (roster.some(w => w.id===last)) select.value = last
+      const last = student.value
+      student.populate([['','只看库存'],...roster.map(w => [w.id,w.name])],roster.some(w=>w.id===last)?last:'')
       rosterKey = key
     }
     const w = current()
     const stats = w ? scores(w) : [0,0,0]
     claim.disabled = claiming || Boolean(state.historyGrant)
-    if (state.historyGrant) note.textContent='已领取 · ¥'+(state.historyGrant.cents/100).toFixed(2)+' → '+state.historyGrant.tokens.toLocaleString()+' 游戏 Token'
-    else if (!note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。'
-    el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString() + ' Token 可用'
+    el('history-offer').hidden=Boolean(state.historyGrant)
+    if (!state.historyGrant && !note.textContent) note.textContent='按 10 元折合 1 亿游戏 Token 估算，每份档案可领取一次。'
+    el('academy-wallet').textContent = Math.floor(state.tokenPool).toLocaleString('zh-CN') + ' Token 可用'
     el('academy-status').textContent = !w ? '共用库存' : w.diploma ? '毕业成绩 · '+w.diploma.rank+' 级' : ['幼鲸 · 成长中','Q 版小人 · 启蒙','少女 · 研习','少女 · 研习','成女 · 往届补修'][w.stage]
     el('academy-stats').textContent = !w ? '选择一位住民即可查看她能使用的物品。' : subjects.map((name,i) => name+' '+stats[i]+'/100').join('　')
     if (w && !w.form) el('academy-stats').textContent += '　成长日龄 '+ageDays(w)+' 天'
@@ -233,7 +233,6 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
       el('academy-board').replaceChildren(...rows.map(text => {const li=document.createElement('li');li.textContent=text;return li}))
     }
   }
-  select.onchange = () => {el('academy-feedback').textContent='';render()}
   el('academy-graduate').onclick = () => {
     const w = current()
     if (!w || w.stage!==4 || w.diploma || !confirm('以当前成绩完成补修？结业后成绩将固定。')) return
