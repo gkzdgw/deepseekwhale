@@ -3,9 +3,9 @@ import {mood,learningGain,sessionEnergy} from './wellbeing.js'
 
 const categories=['全部','幼鲸白饭','心情料理','体力料理','教材','时光沙漏',...attributes]
 const groups={rice:'幼鲸白饭',gift:'心情料理',energy:'体力料理',clock:'时光沙漏'}
+const itemCategories=new Map(catalog.map(item=>[item,[groups[item.kind]||'教材',...item.effects.map(([a])=>attributes[a])]]))
 function matches(item,category,tier){
-  return (!tier || item.tier===tier) && (category==='全部' || category===(groups[item.kind]||'教材') ||
-    item.effects.some(([a])=>attributes[a]===category))
+  return (!tier || item.tier===tier) && (category==='全部' || itemCategories.get(item).includes(category))
 }
 function paintIcon(icon,item){
   icon.setAttribute('aria-hidden','true')
@@ -56,6 +56,13 @@ export function choiceGroup(group,onChange){
     get value(){return group.querySelector('input:checked')?.value ?? ''},
     set value(value){
       for(const input of group.querySelectorAll('input'))input.checked=input.value===value
+    },
+    showAvailable(values,all){
+      if(!values.has(this.value))this.value=all
+      for(const input of group.querySelectorAll('input')){
+        input.parentElement.hidden=input.value!==all && !values.has(input.value)
+      }
+      group.closest('.filter-row').hidden=values.size===0
     },
     populate(options,selected){
       const fragment=document.createDocumentFragment()
@@ -161,12 +168,20 @@ export function mountMarket(root,{getState,readSharedChanges,save,render,current
       const isBag=prefix!=='store',inline=prefix==='room'
       const w=inline?s.whales.find(whale=>whale.id===residentId()):current()
       const query=inline?search.value.trim().toLowerCase():'',onlyUsable=inline && usable.checked
-      const category=filters[prefix].category.value,tier=Number(filters[prefix].tier.value),n=quantity.valueAsNumber
+      const filter=filters[prefix],n=quantity.valueAsNumber
       const cards=grids[prefix] ||= buildCards(container,prefix)
       const today=w?routine(w):null
-      const key=JSON.stringify([category,tier,n,query,onlyUsable,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
+      const key=JSON.stringify([filter.category.value,filter.tier.value,n,query,onlyUsable,s.tokenPool,s.prices,s.schoolBag,s.riceStock,availableRice(),s.hourglassDays,isBag&&[w,w&&mood(w),today,s.showPreferences]])
       if(snapshots[prefix]===key)continue
       snapshots[prefix]=key
+      if(isBag){
+        const stock=catalog.filter((_,i)=>owned(s,i)>0)
+        filter.category.showAvailable(new Set(stock.flatMap(item=>itemCategories.get(item))),'全部')
+        const selected=filter.category.value
+        const tiers=stock.filter(item=>item.tier && matches(item,selected,0)).map(item=>String(item.tier))
+        filter.tier.showAvailable(new Set(tiers),'0')
+      }
+      const category=filter.category.value,tier=Number(filter.tier.value)
       let shown=0,kinds=0,units=0
       cards.forEach(({card,effect,count,button},i)=>{
         const item=catalog[i],stock=owned(s,i)
