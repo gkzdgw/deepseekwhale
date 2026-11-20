@@ -682,7 +682,9 @@
     .whale-dashboard .dsh-actions{margin-left:0;padding-left:0;border-left:0}
   }
   #private-mode-seat{display:flex;align-items:center;flex:none;--dsw-alias-bg-module-platform:#27283d;--dsw-alias-border-l2:#48455d;--dsw-alias-label-secondary:#dbd7ea}
-  #private-mode-seat:empty{display:none}
+  #private-mode-seat:empty,#shortcut-hint-setting:empty{display:none}
+  #shortcut-hint-setting label{display:inline-flex;gap:8px;align-items:center;margin:4px 0 12px;color:var(--text);font-size:14px;cursor:pointer}
+  #shortcut-hint-setting input{accent-color:#a893e5}
   @container (max-width:530px){
     .whale-dashboard header.top{gap:5px;padding-inline:8px}
     .whale-dashboard .titles{min-width:0}.whale-dashboard .titles h1{font-size:14px}
@@ -1121,6 +1123,7 @@
     <main class="card stage hidden" id="view-settings">
       <div class="pane" style="padding:18px">
         <div class="hd"><h2>设置</h2><span class="aux">只影响本地档案</span></div>
+        <div id="shortcut-hint-setting"></div>
         <div class="form">
           <div class="field" data-tip="档案名只改右上角那个标签，不影响任何数值。">
             <label for="cfg-name">档案名</label>
