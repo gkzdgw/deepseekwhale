@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {summarizeBillingReward as sum} from '../lib/index.js';
 import {catalog,defaultPrices,previousDefaultPrices,priceText} from '../assets/catalog.js';
-import {upgradeEconomy,validPrice} from '../assets/academy.js';
+import {upgradeEconomy,validPrice,spendStudyAction,advanceWithHourglass} from '../assets/academy.js';
+import {ageDays,extraDays} from '../assets/drop-home.js';
+import {origin,DAY} from '../assets/idle.js';
 import {safePurchaseTotal} from '../assets/market.js';
 test('mixed billing uses local FX and frozen CNY once, without changing input',()=>{
  const ledger={config:{currency:'CNY',exchangeRate:7,fxRates:{CNY:6}},days:{'2026-01-01':{cost:2},'2026-01-02':{cost:99,costCny:3}}};
@@ -41,4 +43,29 @@ test('Token units switch at 10^4, 10^8 and 10^12 without rounding',()=>{
  for(const [value,expected] of cases)assert.equal(priceText(value),expected);
  for(const value of [NaN,Infinity,-1,1.5,Number.MAX_SAFE_INTEGER+1])assert.equal(priceText(value),'—');
  for(const value of defaultPrices)assert.notEqual(priceText(value),'—');
+});
+test('exhaustion then hourglass advances growth exactly once; natural time remains independent',()=>{
+ const now=Date.now();
+ const w={bornAt:now-25*DAY,stage:1,bonusDays:0,study:[1,1,1]};
+ const date=()=>origin(w)+(40-extraDays(w))*DAY;
+ const initialAge=ageDays(w,now),initialDate=date();
+ spendStudyAction(w,{day:'2026-11-21',used:0,energy:2},2);
+ assert.equal(w.routine.energy,0);assert.equal(ageDays(w,now),initialAge);assert.equal(date(),initialDate);
+ assert.equal(w.practiceDays,undefined);
+ advanceWithHourglass(w,1);
+ assert.equal(ageDays(w,now),initialAge+1);assert.equal(date(),initialDate-DAY);
+ spendStudyAction(w,{day:'2026-11-21',used:2,energy:12},2);
+ assert.equal(w.routine.used,3);assert.equal(date(),initialDate-DAY);
+ assert.equal(ageDays(w,now+DAY),initialAge+2);assert.equal(date(),initialDate-DAY);
+ advanceWithHourglass(w,3);assert.equal(date(),initialDate-4*DAY);
+});
+test('legacy growth and adult state are not rolled back; nursery play grants no extra days',()=>{
+ const now=Date.now();
+ for(const stage of [0,1,2,3,4]){
+  const w={bornAt:now-25*DAY,stage,practiceDays:5,bonusDays:2};
+  const before=ageDays(w,now);
+  spendStudyAction(w,{day:'2026-11-21',used:2,energy:2},2);
+  assert.equal(ageDays(w,now),before);assert.equal(w.practiceDays,5);assert.equal(w.stage,stage);
+  if(stage===4){assert.equal(advanceWithHourglass(w,1),false);assert.equal(w.bonusDays,2);}
+ }
 });

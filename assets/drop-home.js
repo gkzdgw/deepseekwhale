@@ -5,6 +5,7 @@ import {origin,visit,waitingForRice,mealProgress,nurseryMeals} from './idle.js'
 import {residentPortrait,routeName} from './growth-paths.js'
 import {talents,talentNames} from './talents.js'
 const DAY=86400000
+// Legacy practiceDays is a frozen pre-0.12.17 credit; new lessons never add it.
 export function extraDays(w){return (Number(w.bonusDays)||0)+(Number(w.practiceDays)||0)}
 export function ageDays(w,now=Date.now()){return Math.max(0,Math.floor((now-origin(w))/DAY))+extraDays(w)}
 const stages=['小鲸鱼','Q 版小人','少女','成女']
@@ -84,7 +85,7 @@ export function mountDropHome(root,getState,itemNames,controls,onTravel){
     bars.forEach(({value,meter},i)=>{meter.value=Number(values[i])||0;value.textContent=meter.value+'/100'})
     track.forEach((tag,i)=>{if(i===stage)tag.setAttribute('aria-current','step');else tag.removeAttribute('aria-current')})
     const age=waitingForRice(w)?Math.min(ageDays(w),getState().growth[0].days):ageDays(w)
-    el('room-age').textContent='出生 '+date(w.bornAt)+' · 实际 '+Math.max(0,Math.floor((Date.now()-w.bornAt)/DAY))+' 天 · 沙漏 +'+(w.bonusDays||0)+' 天 · 学堂 +'+(w.practiceDays||0)+' 天'
+    el('room-age').textContent='出生 '+date(w.bornAt)+' · 实际 '+Math.max(0,Math.floor((Date.now()-w.bornAt)/DAY))+' 天 · 沙漏 +'+(w.bonusDays||0)+' 天'+(w.practiceDays?' · 旧版保留进度 +'+w.practiceDays+' 天':'')
     const next=getState().growth[[0,1,3,4][stage]]
     el('room-next-stage').textContent='成长日龄 '+age+' 天'+(next?' · 预计 '+date(origin(w)+(next.days-extraDays(w))*DAY)+' 进入'+stages[stage+1]:' · 已成年')
     if(waitingForRice(w))el('room-next-stage').textContent='白饭 '+mealProgress(w)+' · 再吃 '+(nurseryMeals-w.meals)+' 份就长成 Q 版鲸鱼娘。'

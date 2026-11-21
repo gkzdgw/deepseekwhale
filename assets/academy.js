@@ -29,6 +29,15 @@ export function upgradeEconomy(state) {
   state.economyVersion=4
 }
 const dailyUses=3
+// Spending an action changes stamina and the daily quota, never growth time.
+export function spendStudyAction(w,today,energy){
+  w.routine={day:today.day,used:today.used+1,energy:Math.max(0,today.energy-energy)}
+}
+export function advanceWithHourglass(w,days){
+  if(w.stage>=4)return false
+  w.bonusDays=(Number(w.bonusDays)||0)+days
+  return true
+}
 function localDay(time=Date.now()){
   const date=new Date(time)
   return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-')
@@ -83,8 +92,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     if(!w||w.stage!==0||!w.meals)return
     const today=schedule(w)
     if(today.closed || today.moodRest)return
-    w.routine={day:today.day,used:today.used+1,energy:today.energy-2}
-    if(schedule(w).closed){w.practiceDays=(w.practiceDays||0)+1;updateStage(w,Date.now(),true)}
+    spendStudyAction(w,today,2)
     save();render()
   }
   controls.routine=schedule
@@ -198,8 +206,7 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     state.schoolBag[i]--
     const now=Date.now(),growing=scope.residents.some(w=>w.stage<4)
     for(const resident of scope.residents){
-      if(resident.stage<4){
-        resident.bonusDays=(Number(resident.bonusDays)||0)+state.hourglassDays
+      if(advanceWithHourglass(resident,state.hourglassDays)){
         updateStage(resident,now,true,false)
       }
       resident.lastHourglassDay=localDay(now)
@@ -267,11 +274,10 @@ export function mountAcademy(root, getState, save, readSharedChanges, updateStag
     w.study=stats;w.talents=specialties
     const feeling=lessonFeeling(w,item);if(feeling)changeMood(w,feeling)
     w.lessonReaction={feeling,at:Date.now()}
-    w.routine={day:today.day,used:today.used+1,energy:today.energy-energy}
+    spendStudyAction(w,today,energy)
     let change=''
     if(schedule(w).closed){
-      w.practiceDays=(w.practiceDays||0)+1
-      change=' 学堂成长 +1 天。今天的学习已结束，明日 0 点恢复。'+updateStage(w,Date.now(),true)
+      change=' 今天的学习已结束，明日 0 点恢复。学习不推进成长日期。'
     }
     save()
     return w.name+'使用了'+name+'，'+report.join('、')+'。'+change
