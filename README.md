@@ -20,7 +20,7 @@
 2. 在装有 DSH 的 Windows 电脑上解压整个 ZIP，双击解压目录里的 `install.cmd`。
 3. 重新打开 DSH Web，在标题栏选择「次元之家」。
 
-也可以解压后在目录中运行 `dsh plugin --profile web add ./dsh-dim-womb-0.12.17.tgz`。如果下载的是仓库源码，可在仓库根目录执行 `npm pack` 生成同名 TGZ。
+也可以解压后在目录中运行 `dsh plugin --profile web add ./dsh-dim-womb-0.12.18.tgz`。如果下载的是仓库源码，可在仓库根目录执行 `npm pack` 生成同名 TGZ。
 
 ## 认识次元之家
 

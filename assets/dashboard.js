@@ -1,6 +1,6 @@
 import {artworkUrl} from './artwork.js'
 import {priceText} from './catalog.js'
-import {exportCode,importCode} from './archive.js'
+import {exportCode,importCode,newArchiveId} from './archive.js'
 import {origin,completeNursery,idleGrowth,waitingForRice,mealProgress} from './idle.js'
 import {extraDays} from './drop-home.js'
 import {birthRoute,ensureTrait,routeIndex,routeName,residentPortrait} from './growth-paths.js'
@@ -886,7 +886,7 @@ export function mountDashboard(root, {signal, reserve, family = true, navigate, 
       const reading=await res.json()
       const now=Date.now(),meter=reading.meter
       const base=candidate || {...structuredClone(DEFAULTS),storage:0,economyVersion:4,updatedAt:now,lastSatisfiedAt:now}
-      const fresh=load(true,{...base,...configValues,archiveId:crypto.randomUUID(),seenAt:now,
+      const fresh=load(true,{...base,...configValues,archiveId:newArchiveId(),seenAt:now,
         meterAwaitingBaseline:!meter,meterCursor:meter?{since:meter.today,days:{[meter.today]:meter.days[meter.today]||0}}:null,
         lastTokens:reading.source==='token-monitor'?reading.tokens24h:null})
       const snapshot=JSON.stringify(fresh)
